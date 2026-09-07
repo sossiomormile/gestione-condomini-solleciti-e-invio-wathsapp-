@@ -59,6 +59,17 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
 const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Math.abs(Number(n)||0));
 const months=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 let rootHandle=null, current=[];
+const file=document.getElementById('file');
+const folderBtn=document.getElementById('folderBtn');
+const folderArea=document.getElementById('folderArea');
+const condominioSelect=document.getElementById('condominioSelect');
+const openSelected=document.getElementById('openSelected');
+const status=document.getElementById('status');
+const loader=document.getElementById('loader');
+const results=document.getElementById('results');
+const building=document.getElementById('building');
+const source=document.getElementById('source');
+const people=document.getElementById('people');
 
 function norm(s){return String(s??'').trim().toUpperCase().replace(/\s+/g,' ')}
 function n(v){let x=Number(v); return Number.isFinite(x)?x:0}
@@ -115,7 +126,7 @@ function analyze(wb,fileName){
     let sm=salMap.get(key);
     if(!sm){
       // tentativo di abbinamento per nomi che nel foglio hanno note tra parentesi
-      sm=[...salMap.entries()].find(([k,v])=>k.startsWith(key.split(' (')[0]) || key.startsWith(k.split(' (')[0])) )?.[1];
+      sm=[...salMap.entries()].find(([k,v])=>k.startsWith(key.split(' (')[0]) || key.startsWith(k.split(' (')[0]))?.[1];
     }
     if(sm){
       if(sm.saldo>0.01) debts.push({type:'extra',label:'Saldo lavori infiltrazioni',amount:sm.saldo,selected:true});
