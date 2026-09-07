@@ -30,7 +30,7 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
 </style>
 </head>
 <body>
-<header><h1>🏢 Gestione Condomini V2</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF</div></header>
+<header><h1>🏢 Gestione Condomini V2.3</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF · V2.3</div></header>
 <main>
 <div class="card no-print">
   <b>1. Apri archivio condomini</b>
@@ -87,9 +87,9 @@ async function parseFile(file){
 }
 
 function analyze(wb,fileName){
-  const riName=findSheet(wb,'RATE INSOLUTE'), incName=findSheet(wb,'INCASSI 2026'),
+  const riName=findSheet(wb,'RATE INSOLUTE'), incName=findSheet(wb,'INCASSI'),
         salName=findSheet(wb,'SALDO IMPORTO LAVORI');
-  if(!riName || !incName) throw new Error('Non trovo i fogli "Rate insolute" e/o "Incassi 2026".');
+  if(!riName || !incName) throw new Error('Non trovo i fogli necessari. Fogli presenti: '+wb.SheetNames.join(' | '));
 
   const ri=sheetRows(wb,riName), inc=sheetRows(wb,incName), sal=salName?sheetRows(wb,salName):[];
   const salMap=new Map();
@@ -206,7 +206,7 @@ folderBtn.onclick=async()=>{
 async function findExcel(dir){
   let candidates=[];
   async function walk(h,depth,path=''){
-    if(depth>5)return;
+    if(depth>6)return;
     for await(const [name,x] of h.entries()){
       const full=path ? path+'/'+name : name;
       if(x.kind==='file' && /\.(xlsx|xlsm|xls)$/i.test(name) && !/^~\$/i.test(name)){
@@ -218,30 +218,35 @@ async function findExcel(dir){
   }
   await walk(dir,0);
 
-  // Prima controlla DAVVERO il contenuto dei file.
-  // Il file corretto deve avere Rate insolute + Incassi; i nomi/percorsi servono solo a spareggio.
   let valid=[];
   for(const c of candidates){
     try{
       const f=await c.h.getFile();
       const data=await f.arrayBuffer();
-      const wb=XLSX.read(data,{type:'array',bookSheets:true});
+      // Apertura completa: evita falsi positivi/negativi nella sola lettura dei nomi foglio.
+      const wb=XLSX.read(data,{type:'array'});
       const names=(wb.SheetNames||[]).map(norm);
       const hasRate=names.some(x=>x.includes('RATE INSOLUTE'));
       const hasInc=names.some(x=>x.includes('INCASSI'));
       if(hasRate && hasInc){
         let score=100;
-        if(/bilancio\s*2026/i.test(c.name)) score+=50;
-        else if(/bilancio/i.test(c.name)) score+=30;
-        if(/(^|\/)2026(\/|$)/i.test(c.path)) score+=20;
-        if(/preventivo/i.test(c.name)) score-=40;
+        const p=norm(c.path);
+        const fn=norm(c.name);
+        if(fn==='BILANCIO 2026.XLSX' || fn==='BILANCIO 2026.XLSM') score+=150;
+        else if(fn.includes('BILANCIO 2026')) score+=120;
+        else if(fn.includes('BILANCIO')) score+=70;
+        if(p.includes('/BILANCIO/2026/')) score+=100;
+        else if(p.includes('/BILANCIO/')) score+=50;
+        if(fn.includes('PREVENTIVO')) score-=100;
         valid.push({...c,score});
       }
     }catch(e){}
   }
+
   valid.sort((a,b)=>b.score-a.score || a.path.localeCompare(b.path,'it'));
   return valid[0] || null;
 }
+
 openSelected.onclick=async()=>{
   try{
     let dir=await rootHandle.getDirectoryHandle(condominioSelect.value);
@@ -249,8 +254,11 @@ openSelected.onclick=async()=>{
     let hit=await findExcel(dir);
     if(!hit) return alert('Non ho trovato un bilancio valido: cerco un Excel che contenga i fogli "Rate insolute" e "Incassi".');
     status.textContent='Bilancio valido trovato automaticamente: '+hit.path;
-    parseFile(await hit.h.getFile());
+    const f=await hit.h.getFile();
+    await parseFile(f);
   }catch(e){alert(e.message)}
 }
-if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
+}
 </script></body></html>
