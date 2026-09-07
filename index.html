@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gestione Condomini</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{font-family:system-ui,sans-serif;color:#172033;background:#f4f6f8}*{box-sizing:border-box}
+body{margin:0}header{background:#123c69;color:white;padding:18px}header h1{margin:0;font-size:22px}
+main{max-width:900px;margin:auto;padding:14px}.card{background:white;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 2px 12px #0001}
+button,.btn{border:0;border-radius:10px;padding:12px 14px;font-weight:700;background:#123c69;color:white;text-decoration:none;display:inline-block}
+input[type=file]{width:100%;padding:12px;border:1px dashed #999;border-radius:10px}.muted{color:#667085;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 6px;border-bottom:1px solid #eee;text-align:left}td.num{text-align:right}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.green{background:#14804a}.gray{background:#667085}
+#empty{text-align:center;padding:25px;color:#667085}.pill{background:#eef4ff;padding:4px 8px;border-radius:999px;font-size:12px}
+</style>
+</head><body>
+<header><h1>🏢 Gestione Condomini</h1><div class="muted" style="color:#dbe7f3">Rate, resoconti e solleciti WhatsApp</div></header>
+<main>
+<div class="card"><b>1. Carica il file del condominio</b><p class="muted">Questa versione importa file CSV. Il supporto diretto XLS/XLSM verrà aggiunto nella fase successiva.</p>
+<input id="file" type="file" accept=".csv,text/csv"></div>
+
+<div class="card"><b>2. Riepilogo condomini</b>
+<div id="empty">Carica un CSV per iniziare.</div>
+<div style="overflow:auto"><table id="tab" hidden><thead><tr>
+<th>✓</th><th>Condomino</th><th>Rate scoperte</th><th>Conguagli</th><th>Straordinari</th><th>Totale</th><th></th>
+</tr></thead><tbody></tbody></table></div></div>
+
+<div class="card"><b>3. Voci del resoconto</b><p class="muted">Scegli cosa includere nel messaggio.</p>
+<label><input id="ord" type="checkbox" checked> Rate ordinarie scoperte</label><br>
+<label><input id="cong" type="checkbox" checked> Conguagli</label><br>
+<label><input id="stra" type="checkbox" checked> Spese straordinarie</label>
+</div>
+
+<div class="card"><b>Invio</b><p class="muted">Seleziona uno o più condomini e apri WhatsApp con il testo già compilato.</p>
+<div class="actions"><button class="green" onclick="sendSelected()">Apri WhatsApp</button><button class="gray" onclick="window.print()">Stampa / Salva PDF</button></div></div>
+</main>
+<script>
+let rows=[];
+const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n)||0);
+function parseCSV(s){let lines=s.trim().split(/\r?\n/);let sep=lines[0].includes(';')?';':',';let h=lines.shift().split(sep).map(x=>x.trim().toLowerCase());
+return lines.map(l=>{let a=l.split(sep);let o={};h.forEach((k,i)=>o[k]=(a[i]||'').trim());return o})}
+function num(v){return Number(String(v||0).replace(/\./g,'').replace(',','.'))||0}
+file.onchange=async e=>{let txt=await e.target.files[0].text(); rows=parseCSV(txt).map((r,i)=>({
+id:i,nome:r.condomino||r.nome||'Condomino',rate:r['rate scoperte']||r.rate||0,cong:r.conguagli||r.conguaglio||0,stra:r.straordinari||r.straordinario||0,telefono:r.telefono||''
+}));render()}
+function render(){empty.hidden=!!rows.length;tab.hidden=!rows.length;let b=tab.querySelector('tbody');b.innerHTML='';
+rows.forEach(r=>{let t=num(r.rate)+num(r.cong)+num(r.stra);b.insertAdjacentHTML('beforeend',`<tr><td><input class="sel" data-id="${r.id}" type="checkbox"></td><td><b>${r.nome}</b></td><td class=num>${euro(num(r.rate))}</td><td class=num>${euro(num(r.cong))}</td><td class=num>${euro(num(r.stra))}</td><td class=num><b>${euro(t)}</b></td><td><button onclick="send(${r.id})">WhatsApp</button></td></tr>`)})}
+function msg(r){let a=[`Gentile ${r.nome},`, `di seguito il riepilogo delle somme da saldare:`];let tot=0;
+if(ord.checked){a.push(`• Rate scoperte: ${euro(num(r.rate))}`);tot+=num(r.rate)}
+if(cong.checked){a.push(`• Conguagli: ${euro(num(r.cong))}`);tot+=num(r.cong)}
+if(stra.checked){a.push(`• Spese straordinarie: ${euro(num(r.stra))}`);tot+=num(r.stra)}
+a.push(`Totale da pagare: ${euro(tot)}`,'Grazie.');return a.join('\n')}
+function send(id){let r=rows.find(x=>x.id===id);let phone=(r.telefono||'').replace(/\D/g,'');let u='https://wa.me/'+phone+'?text='+encodeURIComponent(msg(r));location.href=u}
+function sendSelected(){let ids=[...document.querySelectorAll('.sel:checked')].map(x=>+x.dataset.id);if(!ids.length)return alert('Seleziona almeno un condomino.');send(ids[0]);}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
