@@ -2,56 +2,221 @@
 <html lang="it">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gestione Condomini</title>
+<meta name="theme-color" content="#123c69">
+<title>Gestione Condomini V2</title>
 <link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-:root{font-family:system-ui,sans-serif;color:#172033;background:#f4f6f8}*{box-sizing:border-box}
-body{margin:0}header{background:#123c69;color:white;padding:18px}header h1{margin:0;font-size:22px}
-main{max-width:900px;margin:auto;padding:14px}.card{background:white;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 2px 12px #0001}
-button,.btn{border:0;border-radius:10px;padding:12px 14px;font-weight:700;background:#123c69;color:white;text-decoration:none;display:inline-block}
-input[type=file]{width:100%;padding:12px;border:1px dashed #999;border-radius:10px}.muted{color:#667085;font-size:13px}
-table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 6px;border-bottom:1px solid #eee;text-align:left}td.num{text-align:right}
-.actions{display:flex;gap:8px;flex-wrap:wrap}.green{background:#14804a}.gray{background:#667085}
-#empty{text-align:center;padding:25px;color:#667085}.pill{background:#eef4ff;padding:4px 8px;border-radius:999px;font-size:12px}
+:root{font-family:system-ui,sans-serif;color:#172033;background:#f3f5f8}*{box-sizing:border-box}
+body{margin:0}header{background:#123c69;color:white;padding:16px;position:sticky;top:0;z-index:3}
+header h1{margin:0;font-size:21px}main{max-width:1050px;margin:auto;padding:12px}
+.card{background:white;border-radius:14px;padding:15px;margin:10px 0;box-shadow:0 2px 12px #0001}
+button,.btn{border:0;border-radius:10px;padding:11px 13px;font-weight:700;background:#123c69;color:#fff}
+button.secondary{background:#667085}button.green{background:#14804a}
+select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-radius:9px;background:white}
+.muted{font-size:13px;color:#667085}.hidden{display:none}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
+.person{border:1px solid #e5e7eb;border-radius:12px;margin:9px 0;overflow:hidden}
+.person summary{padding:13px;font-weight:700;cursor:pointer;background:#fafafa}
+.body{padding:12px}.section{margin:12px 0}.section h4{margin:0 0 7px}
+.item{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #f0f0f0}
+.item label{flex:1}.amt{font-weight:700;white-space:nowrap}
+.total{font-size:18px;font-weight:800;padding:10px 0}
+.yellow{background:#fff3bf;border:1px solid #f1cf50;border-radius:10px;padding:10px;margin:10px 0;color:#5c4700}
+.credit{display:flex;gap:8px;padding:6px 0}.net{font-size:19px;font-weight:900;color:#0f5132}
+.badge{font-size:12px;background:#e8eef7;border-radius:999px;padding:3px 7px}
+.actions{display:flex;gap:7px;flex-wrap:wrap}.actions button{flex:1}
+#status{margin-top:8px}
+@media print{header,.no-print,#loader{display:none!important}.card{box-shadow:none}.person{break-inside:avoid}}
 </style>
-</head><body>
-<header><h1>🏢 Gestione Condomini</h1><div class="muted" style="color:#dbe7f3">Rate, resoconti e solleciti WhatsApp</div></header>
+</head>
+<body>
+<header><h1>🏢 Gestione Condomini V2</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF</div></header>
 <main>
-<div class="card"><b>1. Carica il file del condominio</b><p class="muted">Questa versione importa file CSV. Il supporto diretto XLS/XLSM verrà aggiunto nella fase successiva.</p>
-<input id="file" type="file" accept=".csv,text/csv"></div>
-
-<div class="card"><b>2. Riepilogo condomini</b>
-<div id="empty">Carica un CSV per iniziare.</div>
-<div style="overflow:auto"><table id="tab" hidden><thead><tr>
-<th>✓</th><th>Condomino</th><th>Rate scoperte</th><th>Conguagli</th><th>Straordinari</th><th>Totale</th><th></th>
-</tr></thead><tbody></tbody></table></div></div>
-
-<div class="card"><b>3. Voci del resoconto</b><p class="muted">Scegli cosa includere nel messaggio.</p>
-<label><input id="ord" type="checkbox" checked> Rate ordinarie scoperte</label><br>
-<label><input id="cong" type="checkbox" checked> Conguagli</label><br>
-<label><input id="stra" type="checkbox" checked> Spese straordinarie</label>
+<div class="card no-print">
+  <b>1. Apri archivio condomini</b>
+  <p class="muted">Da PC puoi scegliere la cartella <b>Condomini_APP</b>. In alternativa scegli direttamente un file Excel.</p>
+  <div class="row">
+    <button id="folderBtn">📁 Scegli Condomini_APP</button>
+    <label class="btn secondary" style="text-align:center">📊 Scegli Excel<input id="file" type="file" accept=".xlsx,.xlsm,.xls" hidden></label>
+  </div>
+  <div id="folderArea" class="hidden" style="margin-top:10px">
+    <select id="condominioSelect"></select>
+    <button id="openSelected" style="margin-top:8px;width:100%">Analizza condominio selezionato</button>
+  </div>
+  <div id="status" class="muted"></div>
 </div>
 
-<div class="card"><b>Invio</b><p class="muted">Seleziona uno o più condomini e apri WhatsApp con il testo già compilato.</p>
-<div class="actions"><button class="green" onclick="sendSelected()">Apri WhatsApp</button><button class="gray" onclick="window.print()">Stampa / Salva PDF</button></div></div>
+<div id="loader" class="card hidden">Analisi del bilancio in corso…</div>
+<div id="results" class="hidden">
+  <div class="card"><b id="building"></b><div class="muted" id="source"></div></div>
+  <div class="card no-print">
+    <div class="row"><button onclick="toggleAll(true)">Seleziona tutte le voci</button><button class="secondary" onclick="toggleAll(false)">Deseleziona tutte</button></div>
+  </div>
+  <div id="people"></div>
+</div>
 </main>
 <script>
-let rows=[];
-const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(n)||0);
-function parseCSV(s){let lines=s.trim().split(/\r?\n/);let sep=lines[0].includes(';')?';':',';let h=lines.shift().split(sep).map(x=>x.trim().toLowerCase());
-return lines.map(l=>{let a=l.split(sep);let o={};h.forEach((k,i)=>o[k]=(a[i]||'').trim());return o})}
-function num(v){return Number(String(v||0).replace(/\./g,'').replace(',','.'))||0}
-file.onchange=async e=>{let txt=await e.target.files[0].text(); rows=parseCSV(txt).map((r,i)=>({
-id:i,nome:r.condomino||r.nome||'Condomino',rate:r['rate scoperte']||r.rate||0,cong:r.conguagli||r.conguaglio||0,stra:r.straordinari||r.straordinario||0,telefono:r.telefono||''
-}));render()}
-function render(){empty.hidden=!!rows.length;tab.hidden=!rows.length;let b=tab.querySelector('tbody');b.innerHTML='';
-rows.forEach(r=>{let t=num(r.rate)+num(r.cong)+num(r.stra);b.insertAdjacentHTML('beforeend',`<tr><td><input class="sel" data-id="${r.id}" type="checkbox"></td><td><b>${r.nome}</b></td><td class=num>${euro(num(r.rate))}</td><td class=num>${euro(num(r.cong))}</td><td class=num>${euro(num(r.stra))}</td><td class=num><b>${euro(t)}</b></td><td><button onclick="send(${r.id})">WhatsApp</button></td></tr>`)})}
-function msg(r){let a=[`Gentile ${r.nome},`, `di seguito il riepilogo delle somme da saldare:`];let tot=0;
-if(ord.checked){a.push(`• Rate scoperte: ${euro(num(r.rate))}`);tot+=num(r.rate)}
-if(cong.checked){a.push(`• Conguagli: ${euro(num(r.cong))}`);tot+=num(r.cong)}
-if(stra.checked){a.push(`• Spese straordinarie: ${euro(num(r.stra))}`);tot+=num(r.stra)}
-a.push(`Totale da pagare: ${euro(tot)}`,'Grazie.');return a.join('\n')}
-function send(id){let r=rows.find(x=>x.id===id);let phone=(r.telefono||'').replace(/\D/g,'');let u='https://wa.me/'+phone+'?text='+encodeURIComponent(msg(r));location.href=u}
-function sendSelected(){let ids=[...document.querySelectorAll('.sel:checked')].map(x=>+x.dataset.id);if(!ids.length)return alert('Seleziona almeno un condomino.');send(ids[0]);}
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Math.abs(Number(n)||0));
+const months=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+let rootHandle=null, current=[];
+
+function norm(s){return String(s??'').trim().toUpperCase().replace(/\s+/g,' ')}
+function n(v){let x=Number(v); return Number.isFinite(x)?x:0}
+function approx0(x){return Math.abs(x)<0.01?0:x}
+function sheetRows(wb,name){let ws=wb.Sheets[name]; return ws?XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true}):[]}
+function findSheet(wb,needle){return wb.SheetNames.find(x=>norm(x).includes(norm(needle)))}
+
+async function parseFile(file){
+  loader.classList.remove('hidden'); results.classList.add('hidden');
+  try{
+    let data=await file.arrayBuffer(); let wb=XLSX.read(data,{type:'array',cellDates:true});
+    analyze(wb,file.name);
+  }catch(e){alert('Non riesco a leggere il file: '+e.message)}
+  finally{loader.classList.add('hidden')}
+}
+
+function analyze(wb,fileName){
+  const riName=findSheet(wb,'RATE INSOLUTE'), incName=findSheet(wb,'INCASSI 2026'),
+        salName=findSheet(wb,'SALDO IMPORTO LAVORI');
+  if(!riName || !incName) throw new Error('Non trovo i fogli "Rate insolute" e/o "Incassi 2026".');
+
+  const ri=sheetRows(wb,riName), inc=sheetRows(wb,incName), sal=salName?sheetRows(wb,salName):[];
+  const salMap=new Map();
+  for(let r=5;r<sal.length;r++){
+    let name=norm(sal[r]?.[0]); if(!name) continue;
+    salMap.set(name,{label:sal[r][0],saldo:approx0(n(sal[r][9]))});
+  }
+
+  current=[];
+  // Blocchi condomini: righe con nome in colonna A e almeno un interno.
+  for(let r=5;r<ri.length;r++){
+    let row=ri[r]; if(!row || !row[0] || row[2]==null) continue;
+    let name=row[0], key=norm(name);
+    let monthly=n(row[21]), ordinary=n(row[22]), cong=approx0(n(row[23]));
+    let items=[];
+    // Le colonne D:O (1..12) indicano mesi coperti; 0 = non coperto.
+    // Mostriamo solo i mesi maturati fino a "MESE ATTUALE" (colonna R -> index 17).
+    let currentMonth=Math.max(0,Math.min(12,Math.round(n(row[17]))));
+    for(let m=0;m<currentMonth;m++){
+      let paidFlag=n(row[3+m]);
+      if(paidFlag<=0 && monthly>0) items.push({type:'ordinary',label:months[m],amount:monthly,selected:true});
+    }
+    // Se la somma dei mesi non coincide con il totale ordinario del foglio, manteniamo il totale ufficiale
+    // tramite una voce di rettifica visibile e selezionabile.
+    let calcOrd=items.reduce((a,x)=>a+x.amount,0);
+    if(Math.abs(calcOrd-ordinary)>0.01){
+      items.push({type:'ordinary',label:'Rettifica ordinario da bilancio',amount:ordinary-calcOrd,selected:true});
+    }
+
+    let debts=[], credits=[];
+    if(cong>0.01) debts.push({type:'cong',label:'Conguaglio a debito',amount:cong,selected:true});
+    if(cong<-0.01) credits.push({label:'Conguaglio / dare-avere a credito',amount:-cong,selected:false});
+
+    let sm=salMap.get(key);
+    if(!sm){
+      // tentativo di abbinamento per nomi che nel foglio hanno note tra parentesi
+      sm=[...salMap.entries()].find(([k,v])=>k.startsWith(key.split(' (')[0]) || key.startsWith(k.split(' (')[0])) )?.[1];
+    }
+    if(sm){
+      if(sm.saldo>0.01) debts.push({type:'extra',label:'Saldo lavori infiltrazioni',amount:sm.saldo,selected:true});
+      if(sm.saldo<-0.01) credits.push({label:'Eccedenza/credito lavori infiltrazioni',amount:-sm.saldo,selected:false});
+    }
+
+    // telefono dal foglio Rate insolute, colonna AF = index 31
+    let phone=row[31] ? String(row[31]).replace(/\D/g,'') : '';
+    current.push({id:current.length,name,piano:row[1],interno:row[2],phone,items:[...items,...debts],credits});
+  }
+  render(fileName,wb);
+}
+
+function render(fileName,wb){
+  let title='Condominio';
+  let front=findSheet(wb,'FROTESPIZIO');
+  if(front){let rr=sheetRows(wb,front); if(rr[0]?.[0]) title=rr[0][0]}
+  building.textContent=title; source.textContent='File analizzato: '+fileName;
+  people.innerHTML='';
+  current.forEach(p=>{
+    let el=document.createElement('details'); el.className='person';
+    el.innerHTML=`<summary>${p.name} <span class="badge">Int. ${p.interno}</span></summary><div class="body" id="p${p.id}"></div>`;
+    people.appendChild(el); renderPerson(p);
+  });
+  results.classList.remove('hidden');
+}
+function renderPerson(p){
+  let box=document.getElementById('p'+p.id);
+  let ord=p.items.filter(x=>x.type==='ordinary'), cong=p.items.filter(x=>x.type==='cong'), extra=p.items.filter(x=>x.type==='extra');
+  const sec=(title,arr)=>arr.length?`<div class=section><h4>${title}</h4>${arr.map((x,i)=>{
+    let idx=p.items.indexOf(x); return `<div class=item><input class="entry" type=checkbox ${x.selected?'checked':''} onchange="setItem(${p.id},${idx},this.checked)"><label>${x.label}</label><span class=amt>${euro(x.amount)}</span></div>`
+  }).join('')}</div>`:'';
+  let credits=p.credits.length?`<div class=yellow><b>⚠ POSSIBILI COMPENSAZIONI</b><div style="font-size:13px;margin:4px 0">Non vengono applicate automaticamente. Decidi tu se usarle.</div>${p.credits.map((c,i)=>`<div class=credit><input type=checkbox ${c.selected?'checked':''} onchange="setCredit(${p.id},${i},this.checked)"><label>${c.label}: <b>${euro(c.amount)}</b></label></div>`).join('')}</div>`:'';
+  box.innerHTML=sec('Rate ordinarie scoperte',ord)+sec('Conguagli a debito',cong)+sec('Spese straordinarie',extra)+
+  `<div class=total>Totale lordo selezionato: <span id="gross${p.id}"></span></div>${credits}
+   <div class=net>Nuovo totale dopo compensazioni: <span id="net${p.id}"></span></div>
+   <div class="actions no-print" style="margin-top:12px"><button class=green onclick="whatsapp(${p.id})">WhatsApp</button><button class=secondary onclick="printOne(${p.id})">PDF / Stampa</button></div>`;
+  recalc(p);
+}
+function setItem(pid,i,v){let p=current[pid];p.items[i].selected=v;recalc(p)}
+function setCredit(pid,i,v){let p=current[pid];p.credits[i].selected=v;recalc(p)}
+function recalc(p){
+  let gross=p.items.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);
+  let comp=p.credits.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);
+  let net=gross-comp;
+  document.getElementById('gross'+p.id).textContent=euro(gross);
+  document.getElementById('net'+p.id).textContent=(net<0?'- ':'')+euro(net);
+}
+function message(p){
+  let lines=[`Gentile ${p.name},`,'di seguito il riepilogo delle somme selezionate:'];
+  p.items.filter(x=>x.selected).forEach(x=>lines.push(`• ${x.label}: ${euro(x.amount)}`));
+  let gross=p.items.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);
+  lines.push(`TOTALE LORDO: ${euro(gross)}`);
+  let cc=p.credits.filter(x=>x.selected);
+  if(cc.length){lines.push('COMPENSAZIONI SCELTE:');cc.forEach(x=>lines.push(`• ${x.label}: -${euro(x.amount)}`));}
+  let net=gross-cc.reduce((a,x)=>a+n(x.amount),0);
+  if(cc.length) lines.push(`NUOVO TOTALE: ${net<0?'- ':''}${euro(net)}`);
+  return lines.join('\n');
+}
+function whatsapp(id){let p=current[id], phone=p.phone||''; location.href=`https://wa.me/${phone}?text=${encodeURIComponent(message(p))}`}
+function printOne(id){document.querySelectorAll('.person').forEach((e,i)=>e.style.display=i===id?'block':'none');current[id]&&document.querySelectorAll('.person')[id].setAttribute('open','');window.print();document.querySelectorAll('.person').forEach(e=>e.style.display='')}
+function toggleAll(v){current.forEach(p=>{p.items.forEach(x=>x.selected=v);renderPerson(p)})}
+
+file.onchange=e=>e.target.files[0]&&parseFile(e.target.files[0]);
+
+folderBtn.onclick=async()=>{
+  if(!window.showDirectoryPicker){alert('La selezione automatica della cartella è disponibile da Chrome/Edge sul PC. Puoi comunque usare "Scegli Excel".');return}
+  try{
+    rootHandle=await window.showDirectoryPicker({mode:'read'});
+    let opts=[];
+    for await (const [name,h] of rootHandle.entries()) if(h.kind==='directory') opts.push(name);
+    opts.sort((a,b)=>a.localeCompare(b,'it'));
+    condominioSelect.innerHTML=opts.map(x=>`<option>${x}</option>`).join('');
+    folderArea.classList.remove('hidden');status.textContent=`Cartella autorizzata: ${rootHandle.name} — ${opts.length} condomini trovati.`;
+  }catch(e){}
+}
+async function findExcel(dir){
+  let candidates=[];
+  async function walk(h,depth){
+    if(depth>3)return;
+    for await(const [name,x] of h.entries()){
+      if(x.kind==='file' && /\.(xlsx|xlsm|xls)$/i.test(name)) candidates.push({name,h:x});
+      else if(x.kind==='directory') await walk(x,depth+1);
+    }
+  }
+  await walk(dir,0);
+  candidates.sort((a,b)=>{
+    let sa=/bilancio/i.test(a.name)?0:1, sb=/bilancio/i.test(b.name)?0:1;
+    return sa-sb || b.name.localeCompare(a.name);
+  });
+  return candidates[0];
+}
+openSelected.onclick=async()=>{
+  try{
+    let dir=await rootHandle.getDirectoryHandle(condominioSelect.value);
+    status.textContent='Cerco il bilancio di '+condominioSelect.value+'…';
+    let hit=await findExcel(dir);
+    if(!hit) return alert('Non ho trovato file Excel in questa cartella.');
+    status.textContent='Trovato: '+hit.name;
+    parseFile(await hit.h.getFile());
+  }catch(e){alert(e.message)}
+}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script></body></html>
