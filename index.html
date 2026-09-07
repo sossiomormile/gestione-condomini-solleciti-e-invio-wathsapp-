@@ -205,27 +205,50 @@ folderBtn.onclick=async()=>{
 }
 async function findExcel(dir){
   let candidates=[];
-  async function walk(h,depth){
-    if(depth>3)return;
+  async function walk(h,depth,path=''){
+    if(depth>5)return;
     for await(const [name,x] of h.entries()){
-      if(x.kind==='file' && /\.(xlsx|xlsm|xls)$/i.test(name)) candidates.push({name,h:x});
-      else if(x.kind==='directory') await walk(x,depth+1);
+      const full=path ? path+'/'+name : name;
+      if(x.kind==='file' && /\.(xlsx|xlsm|xls)$/i.test(name) && !/^~\$/i.test(name)){
+        candidates.push({name,h:x,path:full});
+      } else if(x.kind==='directory') {
+        await walk(x,depth+1,full);
+      }
     }
   }
   await walk(dir,0);
-  candidates.sort((a,b)=>{
-    let sa=/bilancio/i.test(a.name)?0:1, sb=/bilancio/i.test(b.name)?0:1;
-    return sa-sb || b.name.localeCompare(a.name);
-  });
-  return candidates[0];
+
+  // Prima controlla DAVVERO il contenuto dei file.
+  // Il file corretto deve avere Rate insolute + Incassi; i nomi/percorsi servono solo a spareggio.
+  let valid=[];
+  for(const c of candidates){
+    try{
+      const f=await c.h.getFile();
+      const data=await f.arrayBuffer();
+      const wb=XLSX.read(data,{type:'array',bookSheets:true});
+      const names=(wb.SheetNames||[]).map(norm);
+      const hasRate=names.some(x=>x.includes('RATE INSOLUTE'));
+      const hasInc=names.some(x=>x.includes('INCASSI'));
+      if(hasRate && hasInc){
+        let score=100;
+        if(/bilancio\s*2026/i.test(c.name)) score+=50;
+        else if(/bilancio/i.test(c.name)) score+=30;
+        if(/(^|\/)2026(\/|$)/i.test(c.path)) score+=20;
+        if(/preventivo/i.test(c.name)) score-=40;
+        valid.push({...c,score});
+      }
+    }catch(e){}
+  }
+  valid.sort((a,b)=>b.score-a.score || a.path.localeCompare(b.path,'it'));
+  return valid[0] || null;
 }
 openSelected.onclick=async()=>{
   try{
     let dir=await rootHandle.getDirectoryHandle(condominioSelect.value);
     status.textContent='Cerco il bilancio di '+condominioSelect.value+'…';
     let hit=await findExcel(dir);
-    if(!hit) return alert('Non ho trovato file Excel in questa cartella.');
-    status.textContent='Trovato: '+hit.name;
+    if(!hit) return alert('Non ho trovato un bilancio valido: cerco un Excel che contenga i fogli "Rate insolute" e "Incassi".');
+    status.textContent='Bilancio valido trovato automaticamente: '+hit.path;
     parseFile(await hit.h.getFile());
   }catch(e){alert(e.message)}
 }
