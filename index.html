@@ -30,7 +30,7 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
 </style>
 </head>
 <body>
-<header><h1>🏢 Gestione Condomini V2.3</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF · V2.3</div></header>
+<header><h1>🏢 Gestione Condomini V2.4</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF · V2.4</div></header>
 <main>
 <div class="card no-print">
   <b>1. Apri archivio condomini</b>
@@ -48,7 +48,7 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
 
 <div id="loader" class="card hidden">Analisi del bilancio in corso…</div>
 <div id="results" class="hidden">
-  <div class="card"><b id="building"></b><div class="muted" id="source"></div></div>
+  <div class="card"><b id="building"></b><div class="muted" id="source"></div><div class="muted" style="margin-top:5px">V2.4 · Nominativi ufficiali dal foglio Incassi · eventuali incongruenze evidenziate in rosso</div></div>
   <div class="card no-print">
     <div class="row"><button onclick="toggleAll(true)">Seleziona tutte le voci</button><button class="secondary" onclick="toggleAll(false)">Deseleziona tutte</button></div>
   </div>
@@ -92,29 +92,86 @@ function analyze(wb,fileName){
   if(!riName || !incName) throw new Error('Non trovo i fogli necessari. Fogli presenti: '+wb.SheetNames.join(' | '));
 
   const ri=sheetRows(wb,riName), inc=sheetRows(wb,incName), sal=salName?sheetRows(wb,salName):[];
-  const salMap=new Map();
+
+  // V2.4: il foglio INCASSI è l'anagrafica ufficiale.
+  // La posizione economica viene agganciata all'unità (piano+interno), NON al nome.
+  const unitKey=(piano,interno)=>norm(piano)+'|'+norm(interno);
+  const incByUnit=new Map(), incByInterno=new Map();
+
+  for(let r=5;r<inc.length;r++){
+    const row=inc[r];
+    if(!row || !row[0] || row[2]==null) continue;
+    const rec={name:String(row[0]).trim(),piano:row[1],interno:row[2],row:r};
+    incByUnit.set(unitKey(rec.piano,rec.interno),rec);
+    const ik=norm(rec.interno);
+    if(!incByInterno.has(ik)) incByInterno.set(ik,[]);
+    incByInterno.get(ik).push(rec);
+  }
+
+  function officialFor(piano,interno){
+    const exact=incByUnit.get(unitKey(piano,interno));
+    if(exact) return exact;
+    const same=incByInterno.get(norm(interno))||[];
+    return same.length===1 ? same[0] : null;
+  }
+
+  // Indicizza i saldi lavori per unità, mai per nominativo.
+  const salByUnit=new Map();
   for(let r=5;r<sal.length;r++){
-    let name=norm(sal[r]?.[0]); if(!name) continue;
-    salMap.set(name,{label:sal[r][0],saldo:approx0(n(sal[r][9]))});
+    const row=sal[r];
+    if(!row || !row[0] || row[2]==null) continue;
+    const off=officialFor(row[1],row[2]);
+    if(!off) continue;
+    salByUnit.set(unitKey(off.piano,off.interno),{
+      oldName:String(row[0]).trim(),
+      saldo:approx0(n(row[9])),
+      sheet:salName
+    });
+  }
+
+  // Controllo incongruenze anagrafiche nei fogli che hanno
+  // nominativo/piano/interno nelle prime tre colonne.
+  const conflictsByUnit=new Map();
+  const comparableSheets=wb.SheetNames.filter(s=>norm(s)!==norm(incName));
+  for(const sname of comparableSheets){
+    const rows=sheetRows(wb,sname);
+    for(let r=5;r<rows.length;r++){
+      const row=rows[r];
+      if(!row || !row[0] || row[2]==null) continue;
+      const off=officialFor(row[1],row[2]);
+      if(!off) continue;
+      const other=String(row[0]).trim();
+      // Evita righe descrittive/totali: confronta solo nomi plausibili.
+      if(other.length<3 || /^(TOTALE|SALDO|PAGATO|CREDITI|DEBITI|CONDOMINIO)/i.test(other)) continue;
+      if(norm(other)!==norm(off.name)){
+        const k=unitKey(off.piano,off.interno);
+        if(!conflictsByUnit.has(k)) conflictsByUnit.set(k,[]);
+        const arr=conflictsByUnit.get(k);
+        const msg={sheet:sname,oldName:other};
+        if(!arr.some(x=>x.sheet===msg.sheet && norm(x.oldName)===norm(msg.oldName))) arr.push(msg);
+      }
+    }
   }
 
   current=[];
-  // Blocchi condomini: righe con nome in colonna A e almeno un interno.
   for(let r=5;r<ri.length;r++){
-    let row=ri[r]; if(!row || !row[0] || row[2]==null) continue;
-    let name=row[0], key=norm(name);
-    let monthly=n(row[21]), ordinary=n(row[22]), cong=approx0(n(row[23]));
+    const row=ri[r];
+    if(!row || !row[0] || row[2]==null) continue;
+
+    const off=officialFor(row[1],row[2]);
+    if(!off) continue; // nessuna attribuzione automatica se l'unità non è risolta
+
+    const key=unitKey(off.piano,off.interno);
+    const monthly=n(row[21]), ordinary=n(row[22]), cong=approx0(n(row[23]));
     let items=[];
-    // Le colonne D:O (1..12) indicano mesi coperti; 0 = non coperto.
-    // Mostriamo solo i mesi maturati fino a "MESE ATTUALE" (colonna R -> index 17).
+
     let currentMonth=Math.max(0,Math.min(12,Math.round(n(row[17]))));
     for(let m=0;m<currentMonth;m++){
-      let paidFlag=n(row[3+m]);
-      if(paidFlag<=0 && monthly>0) items.push({type:'ordinary',label:months[m],amount:monthly,selected:true});
+      const paidFlag=n(row[3+m]);
+      if(paidFlag<=0 && monthly>0)
+        items.push({type:'ordinary',label:months[m],amount:monthly,selected:true});
     }
-    // Se la somma dei mesi non coincide con il totale ordinario del foglio, manteniamo il totale ufficiale
-    // tramite una voce di rettifica visibile e selezionabile.
-    let calcOrd=items.reduce((a,x)=>a+x.amount,0);
+    const calcOrd=items.reduce((a,x)=>a+x.amount,0);
     if(Math.abs(calcOrd-ordinary)>0.01){
       items.push({type:'ordinary',label:'Rettifica ordinario da bilancio',amount:ordinary-calcOrd,selected:true});
     }
@@ -123,19 +180,32 @@ function analyze(wb,fileName){
     if(cong>0.01) debts.push({type:'cong',label:'Conguaglio a debito',amount:cong,selected:true});
     if(cong<-0.01) credits.push({label:'Conguaglio / dare-avere a credito',amount:-cong,selected:false});
 
-    let sm=salMap.get(key);
-    if(!sm){
-      // tentativo di abbinamento per nomi che nel foglio hanno note tra parentesi
-      sm=[...salMap.entries()].find(([k,v])=>k.startsWith(key.split(' (')[0]) || key.startsWith(k.split(' (')[0]))?.[1];
-    }
+    const sm=salByUnit.get(key);
     if(sm){
       if(sm.saldo>0.01) debts.push({type:'extra',label:'Saldo lavori infiltrazioni',amount:sm.saldo,selected:true});
       if(sm.saldo<-0.01) credits.push({label:'Eccedenza/credito lavori infiltrazioni',amount:-sm.saldo,selected:false});
     }
 
-    // telefono dal foglio Rate insolute, colonna AF = index 31
+    // Telefono: preferisci Incassi se presente, altrimenti Rate insolute.
+    // Alcuni bilanci non hanno la colonna telefono in Incassi.
     let phone=row[31] ? String(row[31]).replace(/\D/g,'') : '';
-    current.push({id:current.length,name,piano:row[1],interno:row[2],phone,items:[...items,...debts],credits});
+
+    const conflicts=conflictsByUnit.get(key)||[];
+    // Garantisce che anche il vecchio nome del foglio Rate insolute sia segnalato.
+    if(norm(row[0])!==norm(off.name) && !conflicts.some(x=>x.sheet===riName && norm(x.oldName)===norm(row[0]))){
+      conflicts.unshift({sheet:riName,oldName:String(row[0]).trim()});
+    }
+
+    current.push({
+      id:current.length,
+      name:off.name,             // SEMPRE da Incassi
+      piano:off.piano,
+      interno:off.interno,
+      phone,
+      items:[...items,...debts],
+      credits,
+      conflicts
+    });
   }
   render(fileName,wb);
 }
@@ -148,7 +218,8 @@ function render(fileName,wb){
   people.innerHTML='';
   current.forEach(p=>{
     let el=document.createElement('details'); el.className='person';
-    el.innerHTML=`<summary>${p.name} <span class="badge">Int. ${p.interno}</span></summary><div class="body" id="p${p.id}"></div>`;
+    const bad=p.conflicts && p.conflicts.length;
+    el.innerHTML=`<summary><span style="${bad?'color:#c62828;font-weight:900':''}">${p.name}</span> <span class="badge">Int. ${p.interno}</span>${bad?' <span style="color:#c62828">⚠</span>':''}</summary><div class="body" id="p${p.id}"></div>`;
     people.appendChild(el); renderPerson(p);
   });
   results.classList.remove('hidden');
@@ -159,8 +230,17 @@ function renderPerson(p){
   const sec=(title,arr)=>arr.length?`<div class=section><h4>${title}</h4>${arr.map((x,i)=>{
     let idx=p.items.indexOf(x); return `<div class=item><input class="entry" type=checkbox ${x.selected?'checked':''} onchange="setItem(${p.id},${idx},this.checked)"><label>${x.label}</label><span class=amt>${euro(x.amount)}</span></div>`
   }).join('')}</div>`:'';
+
+  const warnings=(p.conflicts&&p.conflicts.length)?`<div style="background:#fde8e8;border:1px solid #e57373;border-radius:10px;padding:10px;margin-bottom:12px;color:#8b1e1e">
+    <b>⚠ INCONGRUENZA ANAGRAFICA — DA VERIFICARE</b>
+    <div style="font-size:13px;margin-top:5px">Il nominativo ufficiale visualizzato proviene dal foglio <b>Incassi</b>. Negli altri fogli risultano nominativi differenti per la stessa unità:</div>
+    ${p.conflicts.map(c=>`<div style="font-size:13px;margin-top:4px">• ${c.sheet}: <b>${c.oldName}</b></div>`).join('')}
+    <div style="font-size:12px;margin-top:6px">Questo avviso è solo interno e non viene inserito automaticamente in WhatsApp/PDF.</div>
+  </div>`:'';
+
   let credits=p.credits.length?`<div class=yellow><b>⚠ POSSIBILI COMPENSAZIONI</b><div style="font-size:13px;margin:4px 0">Non vengono applicate automaticamente. Decidi tu se usarle.</div>${p.credits.map((c,i)=>`<div class=credit><input type=checkbox ${c.selected?'checked':''} onchange="setCredit(${p.id},${i},this.checked)"><label>${c.label}: <b>${euro(c.amount)}</b></label></div>`).join('')}</div>`:'';
-  box.innerHTML=sec('Rate ordinarie scoperte',ord)+sec('Conguagli a debito',cong)+sec('Spese straordinarie',extra)+
+
+  box.innerHTML=warnings+sec('Rate ordinarie scoperte',ord)+sec('Conguagli a debito',cong)+sec('Spese straordinarie',extra)+
   `<div class=total>Totale lordo selezionato: <span id="gross${p.id}"></span></div>${credits}
    <div class=net>Nuovo totale dopo compensazioni: <span id="net${p.id}"></span></div>
    <div class="actions no-print" style="margin-top:12px"><button class=green onclick="whatsapp(${p.id})">WhatsApp</button><button class=secondary onclick="printOne(${p.id})">PDF / Stampa</button></div>`;
