@@ -1,0 +1,35 @@
+name: Apply V2.7 credit display
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-credit-style-v27.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('Gestione Condomini V2.6','Gestione Condomini V2.7').replace('· V2.6','· V2.7').replace('V2.6 ·','V2.7 ·')
+          s=s.replace('.credit{display:flex;gap:8px;padding:6px 0}.net{font-size:19px;font-weight:900;color:#0f5132}', '.credit{display:flex;gap:8px;padding:6px 0}.credit-amount{color:#c62828;font-weight:900}.net{font-size:19px;font-weight:900;color:#0f5132}.net.negative{color:#c62828}')
+          old="${p.credits.map((c,i)=>`<div class=credit><input type=checkbox ${c.selected?'checked':''} onchange=\"setCredit(${p.id},${i},this.checked)\"><label>${c.label}: <b>${euro(c.amount)}</b></label></div>`).join('')}"
+          new="${p.credits.map((c,i)=>`<div class=credit><input type=checkbox ${c.selected?'checked':''} onchange=\"setCredit(${p.id},${i},this.checked)\"><label>${c.label}: <span class=\"credit-amount\">− ${euro(c.amount)}</span></label></div>`).join('')}"
+          s=s.replace(old,new)
+          s=s.replace('#printLetter .letter-credit{margin:8px 0;text-align:right}', '#printLetter .letter-credit{margin:8px 0;text-align:right;color:#c62828;font-weight:700}')
+          s=s.replace('${cc.map(x=>`<div class=\"letter-credit\">${esc(x.label)}: -${euro(x.amount)}</div>`).join(\'\')}', '${cc.map(x=>`<div class=\"letter-credit\">${esc(x.label)}: − ${euro(x.amount)}</div>`).join(\'\')}')
+          p.write_text(s)
+          PY
+      - name: Commit change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'V2.7 show refunds in red with minus sign'
+          git push
