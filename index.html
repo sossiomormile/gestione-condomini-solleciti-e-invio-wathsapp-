@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#123c69">
-<title>Gestione Condomini V2.6</title>
+<title>Gestione Condomini V2.7</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -22,7 +22,7 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
 .item label{flex:1}.amt{font-weight:700;white-space:nowrap}
 .total{font-size:18px;font-weight:800;padding:10px 0}
 .yellow{background:#fff3bf;border:1px solid #f1cf50;border-radius:10px;padding:10px;margin:10px 0;color:#5c4700}
-.credit{display:flex;gap:8px;padding:6px 0}.net{font-size:19px;font-weight:900;color:#0f5132}
+.credit{display:flex;gap:8px;padding:6px 0}.credit-amount{color:#c62828;font-weight:900}.net{font-size:19px;font-weight:900;color:#0f5132}.net.negative{color:#c62828}
 .badge{font-size:12px;background:#e8eef7;border-radius:999px;padding:3px 7px}
 .actions{display:flex;gap:7px;flex-wrap:wrap}.actions button{flex:1}
 #status{margin-top:8px}
@@ -36,7 +36,7 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
 #printLetter th,#printLetter td{border-bottom:1px solid #bbb;padding:8px 4px;text-align:left;font-size:14px}
 #printLetter th:last-child,#printLetter td:last-child{text-align:right}
 #printLetter .letter-total{font-weight:700;font-size:16px;text-align:right;margin:14px 0}
-#printLetter .letter-credit{margin:8px 0;text-align:right}
+#printLetter .letter-credit{margin:8px 0;text-align:right;color:#c62828;font-weight:700}
 #printLetter .letter-net{font-weight:700;font-size:17px;text-align:right;margin:12px 0 24px}
 #printLetter .closing{margin-top:28px}
 @media print{
@@ -47,7 +47,7 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
 </style>
 </head>
 <body>
-<header><h1>🏢 Gestione Condomini V2.6</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF · V2.6</div></header>
+<header><h1>🏢 Gestione Condomini V2.7</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF · V2.7</div></header>
 <main>
 <div class="card no-print">
   <b>1. Apri archivio condomini</b>
@@ -64,7 +64,7 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
 </div>
 <div id="loader" class="card hidden">Analisi del bilancio in corso…</div>
 <div id="results" class="hidden">
-  <div class="card"><b id="building"></b><div class="muted" id="source"></div><div class="muted" style="margin-top:5px">V2.6 · Anagrafica da Incassi · abbinamento per SCALA + INTERNO · incongruenze reali in rosso</div></div>
+  <div class="card"><b id="building"></b><div class="muted" id="source"></div><div class="muted" style="margin-top:5px">V2.7 · Anagrafica da Incassi · abbinamento per SCALA + INTERNO · incongruenze reali in rosso</div></div>
   <div class="card no-print"><div class="row"><button onclick="toggleAll(true)">Seleziona tutte le voci</button><button class="secondary" onclick="toggleAll(false)">Deseleziona tutte</button></div></div>
   <div id="people"></div>
 </div>
@@ -176,7 +176,7 @@ function renderPerson(p){
   let box=document.getElementById('p'+p.id);let ord=p.items.filter(x=>x.type==='ordinary'), cong=p.items.filter(x=>x.type==='cong'), extra=p.items.filter(x=>x.type==='extra');
   const sec=(title,arr)=>arr.length?`<div class=section><h4>${title}</h4>${arr.map(x=>{let idx=p.items.indexOf(x); return `<div class=item><input class="entry" type=checkbox ${x.selected?'checked':''} onchange="setItem(${p.id},${idx},this.checked)"><label>${x.label}</label><span class=amt>${euro(x.amount)}</span></div>`}).join('')}</div>`:'';
   const warnings=(p.conflicts&&p.conflicts.length)?`<div style="background:#fde8e8;border:1px solid #e57373;border-radius:10px;padding:10px;margin-bottom:12px;color:#8b1e1e"><b>⚠ INCONGRUENZA ANAGRAFICA — DA VERIFICARE</b><div style="font-size:13px;margin-top:5px">Il nominativo ufficiale visualizzato proviene dal foglio <b>Incassi</b>. Negli altri fogli risultano nominativi differenti per la stessa unità:</div>${p.conflicts.map(c=>`<div style="font-size:13px;margin-top:4px">• ${c.sheet}: <b>${c.oldName}</b></div>`).join('')}<div style="font-size:12px;margin-top:6px">Questo avviso è solo interno e non viene inserito automaticamente in WhatsApp/PDF.</div></div>`:'';
-  let credits=p.credits.length?`<div class=yellow><b>⚠ POSSIBILI COMPENSAZIONI</b><div style="font-size:13px;margin:4px 0">Non vengono applicate automaticamente. Decidi tu se usarle.</div>${p.credits.map((c,i)=>`<div class=credit><input type=checkbox ${c.selected?'checked':''} onchange="setCredit(${p.id},${i},this.checked)"><label>${c.label}: <b>${euro(c.amount)}</b></label></div>`).join('')}</div>`:'';
+  let credits=p.credits.length?`<div class=yellow><b>⚠ POSSIBILI COMPENSAZIONI</b><div style="font-size:13px;margin:4px 0">Non vengono applicate automaticamente. Decidi tu se usarle.</div>${p.credits.map((c,i)=>`<div class=credit><input type=checkbox ${c.selected?'checked':''} onchange="setCredit(${p.id},${i},this.checked)"><label>${c.label}: <span class="credit-amount">− ${euro(c.amount)}</span></label></div>`).join('')}</div>`:'';
   box.innerHTML=warnings+sec('Rate ordinarie scoperte',ord)+sec('Conguagli a debito',cong)+sec('Spese straordinarie',extra)+`<div class=total>Totale lordo selezionato: <span id="gross${p.id}"></span></div>${credits}<div class=net>Nuovo totale dopo compensazioni: <span id="net${p.id}"></span></div><div class="actions no-print" style="margin-top:12px"><button class=green onclick="whatsapp(${p.id})">WhatsApp</button><button class=secondary onclick="printOne(${p.id})">PDF / Stampa</button></div>`;recalc(p)
 }
 function setItem(pid,i,v){let p=current[pid];p.items[i].selected=v;recalc(p)}
@@ -198,7 +198,7 @@ function printOne(id){
   const p=current[id], condo=building.textContent.trim()||'Condominio';
   const selected=p.items.filter(x=>x.selected), gross=selected.reduce((a,x)=>a+n(x.amount),0), cc=p.credits.filter(x=>x.selected), comp=cc.reduce((a,x)=>a+n(x.amount),0), net=gross-comp;
   const rows=selected.map(x=>`<tr><td>${esc(x.label)}</td><td>${euro(x.amount)}</td></tr>`).join('');
-  const credits=cc.length?`<div class="letter-credit"><b>Compensazioni selezionate:</b></div>${cc.map(x=>`<div class="letter-credit">${esc(x.label)}: -${euro(x.amount)}</div>`).join('')}<div class="letter-net">Totale dopo compensazione: ${net<0?'- ':''}${euro(net)}</div>`:'';
+  const credits=cc.length?`<div class="letter-credit"><b>Compensazioni selezionate:</b></div>${cc.map(x=>`<div class="letter-credit">${esc(x.label)}: − ${euro(x.amount)}</div>`).join('')}<div class="letter-net">Totale dopo compensazione: ${net<0?'- ':''}${euro(net)}</div>`:'';
   printLetter.innerHTML=`
     <h1>${esc(condo)}</h1>
     <div class="letter-sub">Sollecito quote condominiali</div>
