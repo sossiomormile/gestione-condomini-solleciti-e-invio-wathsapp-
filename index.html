@@ -30,7 +30,7 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
 </style>
 </head>
 <body>
-<header><h1>🏢 Gestione Condomini V2.4</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF · V2.4</div></header>
+<header><h1>🏢 Gestione Condomini V2.5</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF · V2.5</div></header>
 <main>
 <div class="card no-print">
   <b>1. Apri archivio condomini</b>
@@ -45,13 +45,10 @@ select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-
   </div>
   <div id="status" class="muted"></div>
 </div>
-
 <div id="loader" class="card hidden">Analisi del bilancio in corso…</div>
 <div id="results" class="hidden">
-  <div class="card"><b id="building"></b><div class="muted" id="source"></div><div class="muted" style="margin-top:5px">V2.4 · Nominativi ufficiali dal foglio Incassi · eventuali incongruenze evidenziate in rosso</div></div>
-  <div class="card no-print">
-    <div class="row"><button onclick="toggleAll(true)">Seleziona tutte le voci</button><button class="secondary" onclick="toggleAll(false)">Deseleziona tutte</button></div>
-  </div>
+  <div class="card"><b id="building"></b><div class="muted" id="source"></div><div class="muted" style="margin-top:5px">V2.5 · Anagrafica da Incassi · abbinamento per SCALA + INTERNO · incongruenze reali in rosso</div></div>
+  <div class="card no-print"><div class="row"><button onclick="toggleAll(true)">Seleziona tutte le voci</button><button class="secondary" onclick="toggleAll(false)">Deseleziona tutte</button></div></div>
   <div id="people"></div>
 </div>
 </main>
@@ -70,275 +67,121 @@ const results=document.getElementById('results');
 const building=document.getElementById('building');
 const source=document.getElementById('source');
 const people=document.getElementById('people');
-
 function norm(s){return String(s??'').trim().toUpperCase().replace(/\s+/g,' ')}
 function n(v){let x=Number(v); return Number.isFinite(x)?x:0}
 function approx0(x){return Math.abs(x)<0.01?0:x}
 function sheetRows(wb,name){let ws=wb.Sheets[name]; return ws?XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true}):[]}
 function findSheet(wb,needle){return wb.SheetNames.find(x=>norm(x).includes(norm(needle)))}
-
 async function parseFile(file){
   loader.classList.remove('hidden'); results.classList.add('hidden');
-  try{
-    let data=await file.arrayBuffer(); let wb=XLSX.read(data,{type:'array',cellDates:true});
-    analyze(wb,file.name);
-  }catch(e){alert('Non riesco a leggere il file: '+e.message)}
-  finally{loader.classList.add('hidden')}
+  try{let data=await file.arrayBuffer(); let wb=XLSX.read(data,{type:'array',cellDates:true});analyze(wb,file.name)}catch(e){alert('Non riesco a leggere il file: '+e.message)}finally{loader.classList.add('hidden')}
 }
-
 function analyze(wb,fileName){
-  const riName=findSheet(wb,'RATE INSOLUTE'), incName=findSheet(wb,'INCASSI'),
-        salName=findSheet(wb,'SALDO IMPORTO LAVORI');
+  const riName=findSheet(wb,'RATE INSOLUTE'), incName=findSheet(wb,'INCASSI'), salName=findSheet(wb,'SALDO IMPORTO LAVORI');
   if(!riName || !incName) throw new Error('Non trovo i fogli necessari. Fogli presenti: '+wb.SheetNames.join(' | '));
-
   const ri=sheetRows(wb,riName), inc=sheetRows(wb,incName), sal=salName?sheetRows(wb,salName):[];
-
-  // V2.4: il foglio INCASSI è l'anagrafica ufficiale.
-  // La posizione economica viene agganciata all'unità (piano+interno), NON al nome.
-  const unitKey=(piano,interno)=>norm(piano)+'|'+norm(interno);
-  const incByUnit=new Map(), incByInterno=new Map();
-
-  for(let r=5;r<inc.length;r++){
-    const row=inc[r];
-    if(!row || !row[0] || row[2]==null) continue;
-    const rec={name:String(row[0]).trim(),piano:row[1],interno:row[2],row:r};
-    incByUnit.set(unitKey(rec.piano,rec.interno),rec);
-    const ik=norm(rec.interno);
-    if(!incByInterno.has(ik)) incByInterno.set(ik,[]);
-    incByInterno.get(ik).push(rec);
+  function scaleFromCell(v){
+    const s=norm(v).replace(/["']/g,' ');
+    let m=s.match(/\bSCALA\s+([A-Z0-9]+)\b/); if(m) return m[1];
+    m=s.match(/\bFABBRICATO\s+([A-Z0-9]+)\b/); if(m) return m[1];
+    m=s.match(/\bFABRICATO\s+([A-Z0-9]+)\b/); return m?m[1]:'';
   }
-
-  function officialFor(piano,interno){
-    const exact=incByUnit.get(unitKey(piano,interno));
-    if(exact) return exact;
-    const same=incByInterno.get(norm(interno))||[];
-    return same.length===1 ? same[0] : null;
+  function rowsWithScale(rows){
+    let scala='';
+    return rows.map((row,r)=>{row=row||[];for(let c=0;c<Math.min(3,row.length);c++){const found=scaleFromCell(row[c]);if(found){scala=found;break}}return {row,r,scala}});
   }
-
-  // Indicizza i saldi lavori per unità, mai per nominativo.
+  const unitKey=(scala,interno)=>norm(scala)+'|'+norm(interno);
+  const incByUnit=new Map();
+  for(const x of rowsWithScale(inc)){
+    const row=x.row;
+    if(!x.scala || !row[0] || row[2]==null || norm(row[0])==='CONDOMINO') continue;
+    const rec={name:String(row[0]).trim(),scala:x.scala,piano:row[1],interno:row[2],row:x.r};
+    incByUnit.set(unitKey(rec.scala,rec.interno),rec);
+  }
+  function officialFor(scala,interno){if(!scala || interno==null) return null;return incByUnit.get(unitKey(scala,interno))||null}
   const salByUnit=new Map();
-  for(let r=5;r<sal.length;r++){
-    const row=sal[r];
-    if(!row || !row[0] || row[2]==null) continue;
-    const off=officialFor(row[1],row[2]);
-    if(!off) continue;
-    salByUnit.set(unitKey(off.piano,off.interno),{
-      oldName:String(row[0]).trim(),
-      saldo:approx0(n(row[9])),
-      sheet:salName
-    });
+  for(const x of rowsWithScale(sal)){
+    const row=x.row;
+    if(!x.scala || !row[0] || row[2]==null || norm(row[0])==='CONDOMINO') continue;
+    const off=officialFor(x.scala,row[2]); if(!off) continue;
+    salByUnit.set(unitKey(off.scala,off.interno),{oldName:String(row[0]).trim(),saldo:approx0(n(row[9])),sheet:salName});
   }
-
-  // Controllo incongruenze anagrafiche nei fogli che hanno
-  // nominativo/piano/interno nelle prime tre colonne.
   const conflictsByUnit=new Map();
   const comparableSheets=wb.SheetNames.filter(s=>norm(s)!==norm(incName));
   for(const sname of comparableSheets){
     const rows=sheetRows(wb,sname);
-    for(let r=5;r<rows.length;r++){
-      const row=rows[r];
-      if(!row || !row[0] || row[2]==null) continue;
-      const off=officialFor(row[1],row[2]);
-      if(!off) continue;
+    for(const x of rowsWithScale(rows)){
+      const row=x.row;
+      if(!x.scala || !row[0] || row[2]==null || norm(row[0])==='CONDOMINO') continue;
+      const off=officialFor(x.scala,row[2]); if(!off) continue;
       const other=String(row[0]).trim();
-      // Evita righe descrittive/totali: confronta solo nomi plausibili.
-      if(other.length<3 || /^(TOTALE|SALDO|PAGATO|CREDITI|DEBITI|CONDOMINIO)/i.test(other)) continue;
+      if(other.length<3 || /^(TOTALE|SALDO|PAGATO|CREDITI|DEBITI|CONDOMINIO|SCALA|FABBRICATO|FABRICATO)/i.test(other)) continue;
       if(norm(other)!==norm(off.name)){
-        const k=unitKey(off.piano,off.interno);
-        if(!conflictsByUnit.has(k)) conflictsByUnit.set(k,[]);
-        const arr=conflictsByUnit.get(k);
-        const msg={sheet:sname,oldName:other};
-        if(!arr.some(x=>x.sheet===msg.sheet && norm(x.oldName)===norm(msg.oldName))) arr.push(msg);
+        const k=unitKey(off.scala,off.interno);if(!conflictsByUnit.has(k)) conflictsByUnit.set(k,[]);
+        const arr=conflictsByUnit.get(k), msg={sheet:sname,oldName:other};
+        if(!arr.some(z=>z.sheet===msg.sheet && norm(z.oldName)===norm(msg.oldName))) arr.push(msg);
       }
     }
   }
-
   current=[];
-  for(let r=5;r<ri.length;r++){
-    const row=ri[r];
-    if(!row || !row[0] || row[2]==null) continue;
-
-    const off=officialFor(row[1],row[2]);
-    if(!off) continue; // nessuna attribuzione automatica se l'unità non è risolta
-
-    const key=unitKey(off.piano,off.interno);
-    const monthly=n(row[21]), ordinary=n(row[22]), cong=approx0(n(row[23]));
+  for(const x of rowsWithScale(ri)){
+    const row=x.row;
+    if(!x.scala || !row[0] || row[2]==null || norm(row[0])==='CONDOMINO') continue;
+    const off=officialFor(x.scala,row[2]); if(!off) continue;
+    const key=unitKey(off.scala,off.interno), monthly=n(row[21]), ordinary=n(row[22]), cong=approx0(n(row[23]));
     let items=[];
-
     let currentMonth=Math.max(0,Math.min(12,Math.round(n(row[17]))));
-    for(let m=0;m<currentMonth;m++){
-      const paidFlag=n(row[3+m]);
-      if(paidFlag<=0 && monthly>0)
-        items.push({type:'ordinary',label:months[m],amount:monthly,selected:true});
-    }
-    const calcOrd=items.reduce((a,x)=>a+x.amount,0);
-    if(Math.abs(calcOrd-ordinary)>0.01){
-      items.push({type:'ordinary',label:'Rettifica ordinario da bilancio',amount:ordinary-calcOrd,selected:true});
-    }
-
+    for(let m=0;m<currentMonth;m++){const paidFlag=n(row[3+m]);if(paidFlag<=0 && monthly>0) items.push({type:'ordinary',label:months[m],amount:monthly,selected:true})}
+    const calcOrd=items.reduce((a,z)=>a+z.amount,0);
+    if(Math.abs(calcOrd-ordinary)>0.01) items.push({type:'ordinary',label:'Rettifica ordinario da bilancio',amount:ordinary-calcOrd,selected:true});
     let debts=[], credits=[];
     if(cong>0.01) debts.push({type:'cong',label:'Conguaglio a debito',amount:cong,selected:true});
     if(cong<-0.01) credits.push({label:'Conguaglio / dare-avere a credito',amount:-cong,selected:false});
-
     const sm=salByUnit.get(key);
-    if(sm){
-      if(sm.saldo>0.01) debts.push({type:'extra',label:'Saldo lavori infiltrazioni',amount:sm.saldo,selected:true});
-      if(sm.saldo<-0.01) credits.push({label:'Eccedenza/credito lavori infiltrazioni',amount:-sm.saldo,selected:false});
-    }
-
-    // Telefono: preferisci Incassi se presente, altrimenti Rate insolute.
-    // Alcuni bilanci non hanno la colonna telefono in Incassi.
+    if(sm){if(sm.saldo>0.01) debts.push({type:'extra',label:'Saldo lavori infiltrazioni',amount:sm.saldo,selected:true});if(sm.saldo<-0.01) credits.push({label:'Eccedenza/credito lavori infiltrazioni',amount:-sm.saldo,selected:false})}
     let phone=row[31] ? String(row[31]).replace(/\D/g,'') : '';
-
     const conflicts=conflictsByUnit.get(key)||[];
-    // Garantisce che anche il vecchio nome del foglio Rate insolute sia segnalato.
-    if(norm(row[0])!==norm(off.name) && !conflicts.some(x=>x.sheet===riName && norm(x.oldName)===norm(row[0]))){
-      conflicts.unshift({sheet:riName,oldName:String(row[0]).trim()});
-    }
-
-    current.push({
-      id:current.length,
-      name:off.name,             // SEMPRE da Incassi
-      piano:off.piano,
-      interno:off.interno,
-      phone,
-      items:[...items,...debts],
-      credits,
-      conflicts
-    });
+    current.push({id:current.length,name:off.name,scala:off.scala,piano:off.piano,interno:off.interno,phone,items:[...items,...debts],credits,conflicts});
   }
-  render(fileName,wb);
+  current.sort((a,b)=>String(a.scala).localeCompare(String(b.scala),'it',{numeric:true}) || Number(a.interno)-Number(b.interno));
+  current.forEach((p,i)=>p.id=i);render(fileName,wb);
 }
-
 function render(fileName,wb){
-  let title='Condominio';
-  let front=findSheet(wb,'FROTESPIZIO');
-  if(front){let rr=sheetRows(wb,front); if(rr[0]?.[0]) title=rr[0][0]}
-  building.textContent=title; source.textContent='File analizzato: '+fileName;
-  people.innerHTML='';
-  current.forEach(p=>{
-    let el=document.createElement('details'); el.className='person';
-    const bad=p.conflicts && p.conflicts.length;
-    el.innerHTML=`<summary><span style="${bad?'color:#c62828;font-weight:900':''}">${p.name}</span> <span class="badge">Int. ${p.interno}</span>${bad?' <span style="color:#c62828">⚠</span>':''}</summary><div class="body" id="p${p.id}"></div>`;
-    people.appendChild(el); renderPerson(p);
-  });
+  let title='Condominio';let front=findSheet(wb,'FROTESPIZIO');if(front){let rr=sheetRows(wb,front); if(rr[0]?.[0]) title=rr[0][0]}
+  building.textContent=title; source.textContent='File analizzato: '+fileName;people.innerHTML='';
+  current.forEach(p=>{let el=document.createElement('details'); el.className='person';const bad=p.conflicts && p.conflicts.length;el.innerHTML=`<summary><span style="${bad?'color:#c62828;font-weight:900':''}">${p.name}</span> <span class="badge">Scala ${p.scala} · Int. ${p.interno}</span>${bad?' <span style="color:#c62828">⚠</span>':''}</summary><div class="body" id="p${p.id}"></div>`;people.appendChild(el); renderPerson(p)});
   results.classList.remove('hidden');
 }
 function renderPerson(p){
-  let box=document.getElementById('p'+p.id);
-  let ord=p.items.filter(x=>x.type==='ordinary'), cong=p.items.filter(x=>x.type==='cong'), extra=p.items.filter(x=>x.type==='extra');
-  const sec=(title,arr)=>arr.length?`<div class=section><h4>${title}</h4>${arr.map((x,i)=>{
-    let idx=p.items.indexOf(x); return `<div class=item><input class="entry" type=checkbox ${x.selected?'checked':''} onchange="setItem(${p.id},${idx},this.checked)"><label>${x.label}</label><span class=amt>${euro(x.amount)}</span></div>`
-  }).join('')}</div>`:'';
-
-  const warnings=(p.conflicts&&p.conflicts.length)?`<div style="background:#fde8e8;border:1px solid #e57373;border-radius:10px;padding:10px;margin-bottom:12px;color:#8b1e1e">
-    <b>⚠ INCONGRUENZA ANAGRAFICA — DA VERIFICARE</b>
-    <div style="font-size:13px;margin-top:5px">Il nominativo ufficiale visualizzato proviene dal foglio <b>Incassi</b>. Negli altri fogli risultano nominativi differenti per la stessa unità:</div>
-    ${p.conflicts.map(c=>`<div style="font-size:13px;margin-top:4px">• ${c.sheet}: <b>${c.oldName}</b></div>`).join('')}
-    <div style="font-size:12px;margin-top:6px">Questo avviso è solo interno e non viene inserito automaticamente in WhatsApp/PDF.</div>
-  </div>`:'';
-
+  let box=document.getElementById('p'+p.id);let ord=p.items.filter(x=>x.type==='ordinary'), cong=p.items.filter(x=>x.type==='cong'), extra=p.items.filter(x=>x.type==='extra');
+  const sec=(title,arr)=>arr.length?`<div class=section><h4>${title}</h4>${arr.map((x,i)=>{let idx=p.items.indexOf(x); return `<div class=item><input class="entry" type=checkbox ${x.selected?'checked':''} onchange="setItem(${p.id},${idx},this.checked)"><label>${x.label}</label><span class=amt>${euro(x.amount)}</span></div>`}).join('')}</div>`:'';
+  const warnings=(p.conflicts&&p.conflicts.length)?`<div style="background:#fde8e8;border:1px solid #e57373;border-radius:10px;padding:10px;margin-bottom:12px;color:#8b1e1e"><b>⚠ INCONGRUENZA ANAGRAFICA — DA VERIFICARE</b><div style="font-size:13px;margin-top:5px">Il nominativo ufficiale visualizzato proviene dal foglio <b>Incassi</b>. Negli altri fogli risultano nominativi differenti per la stessa unità:</div>${p.conflicts.map(c=>`<div style="font-size:13px;margin-top:4px">• ${c.sheet}: <b>${c.oldName}</b></div>`).join('')}<div style="font-size:12px;margin-top:6px">Questo avviso è solo interno e non viene inserito automaticamente in WhatsApp/PDF.</div></div>`:'';
   let credits=p.credits.length?`<div class=yellow><b>⚠ POSSIBILI COMPENSAZIONI</b><div style="font-size:13px;margin:4px 0">Non vengono applicate automaticamente. Decidi tu se usarle.</div>${p.credits.map((c,i)=>`<div class=credit><input type=checkbox ${c.selected?'checked':''} onchange="setCredit(${p.id},${i},this.checked)"><label>${c.label}: <b>${euro(c.amount)}</b></label></div>`).join('')}</div>`:'';
-
-  box.innerHTML=warnings+sec('Rate ordinarie scoperte',ord)+sec('Conguagli a debito',cong)+sec('Spese straordinarie',extra)+
-  `<div class=total>Totale lordo selezionato: <span id="gross${p.id}"></span></div>${credits}
-   <div class=net>Nuovo totale dopo compensazioni: <span id="net${p.id}"></span></div>
-   <div class="actions no-print" style="margin-top:12px"><button class=green onclick="whatsapp(${p.id})">WhatsApp</button><button class=secondary onclick="printOne(${p.id})">PDF / Stampa</button></div>`;
-  recalc(p);
+  box.innerHTML=warnings+sec('Rate ordinarie scoperte',ord)+sec('Conguagli a debito',cong)+sec('Spese straordinarie',extra)+`<div class=total>Totale lordo selezionato: <span id="gross${p.id}"></span></div>${credits}<div class=net>Nuovo totale dopo compensazioni: <span id="net${p.id}"></span></div><div class="actions no-print" style="margin-top:12px"><button class=green onclick="whatsapp(${p.id})">WhatsApp</button><button class=secondary onclick="printOne(${p.id})">PDF / Stampa</button></div>`;recalc(p)
 }
 function setItem(pid,i,v){let p=current[pid];p.items[i].selected=v;recalc(p)}
 function setCredit(pid,i,v){let p=current[pid];p.credits[i].selected=v;recalc(p)}
-function recalc(p){
-  let gross=p.items.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);
-  let comp=p.credits.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);
-  let net=gross-comp;
-  document.getElementById('gross'+p.id).textContent=euro(gross);
-  document.getElementById('net'+p.id).textContent=(net<0?'- ':'')+euro(net);
-}
-function message(p){
-  let lines=[`Gentile ${p.name},`,'di seguito il riepilogo delle somme selezionate:'];
-  p.items.filter(x=>x.selected).forEach(x=>lines.push(`• ${x.label}: ${euro(x.amount)}`));
-  let gross=p.items.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);
-  lines.push(`TOTALE LORDO: ${euro(gross)}`);
-  let cc=p.credits.filter(x=>x.selected);
-  if(cc.length){lines.push('COMPENSAZIONI SCELTE:');cc.forEach(x=>lines.push(`• ${x.label}: -${euro(x.amount)}`));}
-  let net=gross-cc.reduce((a,x)=>a+n(x.amount),0);
-  if(cc.length) lines.push(`NUOVO TOTALE: ${net<0?'- ':''}${euro(net)}`);
-  return lines.join('\n');
-}
+function recalc(p){let gross=p.items.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);let comp=p.credits.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);let net=gross-comp;document.getElementById('gross'+p.id).textContent=euro(gross);document.getElementById('net'+p.id).textContent=(net<0?'- ':'')+euro(net)}
+function message(p){let lines=[`Gentile ${p.name},`,'di seguito il riepilogo delle somme selezionate:'];p.items.filter(x=>x.selected).forEach(x=>lines.push(`• ${x.label}: ${euro(x.amount)}`));let gross=p.items.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);lines.push(`TOTALE LORDO: ${euro(gross)}`);let cc=p.credits.filter(x=>x.selected);if(cc.length){lines.push('COMPENSAZIONI SCELTE:');cc.forEach(x=>lines.push(`• ${x.label}: -${euro(x.amount)}`))}let net=gross-cc.reduce((a,x)=>a+n(x.amount),0);if(cc.length) lines.push(`NUOVO TOTALE: ${net<0?'- ':''}${euro(net)}`);return lines.join('\n')}
 function whatsapp(id){let p=current[id], phone=p.phone||''; location.href=`https://wa.me/${phone}?text=${encodeURIComponent(message(p))}`}
 function printOne(id){document.querySelectorAll('.person').forEach((e,i)=>e.style.display=i===id?'block':'none');current[id]&&document.querySelectorAll('.person')[id].setAttribute('open','');window.print();document.querySelectorAll('.person').forEach(e=>e.style.display='')}
 function toggleAll(v){current.forEach(p=>{p.items.forEach(x=>x.selected=v);renderPerson(p)})}
-
 file.onchange=e=>e.target.files[0]&&parseFile(e.target.files[0]);
-
 folderBtn.onclick=async()=>{
   if(!window.showDirectoryPicker){alert('La selezione automatica della cartella è disponibile da Chrome/Edge sul PC. Puoi comunque usare "Scegli Excel".');return}
-  try{
-    rootHandle=await window.showDirectoryPicker({mode:'read'});
-    let opts=[];
-    for await (const [name,h] of rootHandle.entries()) if(h.kind==='directory') opts.push(name);
-    opts.sort((a,b)=>a.localeCompare(b,'it'));
-    condominioSelect.innerHTML=opts.map(x=>`<option>${x}</option>`).join('');
-    folderArea.classList.remove('hidden');status.textContent=`Cartella autorizzata: ${rootHandle.name} — ${opts.length} condomini trovati.`;
-  }catch(e){}
+  try{rootHandle=await window.showDirectoryPicker({mode:'read'});let opts=[];for await (const [name,h] of rootHandle.entries()) if(h.kind==='directory') opts.push(name);opts.sort((a,b)=>a.localeCompare(b,'it'));condominioSelect.innerHTML=opts.map(x=>`<option>${x}</option>`).join('');folderArea.classList.remove('hidden');status.textContent=`Cartella autorizzata: ${rootHandle.name} — ${opts.length} condomini trovati.`}catch(e){}
 }
 async function findExcel(dir){
   let candidates=[];
-  async function walk(h,depth,path=''){
-    if(depth>6)return;
-    for await(const [name,x] of h.entries()){
-      const full=path ? path+'/'+name : name;
-      if(x.kind==='file' && /\.(xlsx|xlsm|xls)$/i.test(name) && !/^~\$/i.test(name)){
-        candidates.push({name,h:x,path:full});
-      } else if(x.kind==='directory') {
-        await walk(x,depth+1,full);
-      }
-    }
-  }
-  await walk(dir,0);
-
-  let valid=[];
+  async function walk(h,depth,path=''){if(depth>6)return;for await(const [name,x] of h.entries()){const full=path ? path+'/'+name : name;if(x.kind==='file' && /\.(xlsx|xlsm|xls)$/i.test(name) && !/^~\$/i.test(name)){candidates.push({name,h:x,path:full})} else if(x.kind==='directory'){await walk(x,depth+1,full)}}}
+  await walk(dir,0);let valid=[];
   for(const c of candidates){
-    try{
-      const f=await c.h.getFile();
-      const data=await f.arrayBuffer();
-      // Apertura completa: evita falsi positivi/negativi nella sola lettura dei nomi foglio.
-      const wb=XLSX.read(data,{type:'array'});
-      const names=(wb.SheetNames||[]).map(norm);
-      const hasRate=names.some(x=>x.includes('RATE INSOLUTE'));
-      const hasInc=names.some(x=>x.includes('INCASSI'));
-      if(hasRate && hasInc){
-        let score=100;
-        const p=norm(c.path);
-        const fn=norm(c.name);
-        if(fn==='BILANCIO 2026.XLSX' || fn==='BILANCIO 2026.XLSM') score+=150;
-        else if(fn.includes('BILANCIO 2026')) score+=120;
-        else if(fn.includes('BILANCIO')) score+=70;
-        if(p.includes('/BILANCIO/2026/')) score+=100;
-        else if(p.includes('/BILANCIO/')) score+=50;
-        if(fn.includes('PREVENTIVO')) score-=100;
-        valid.push({...c,score});
-      }
-    }catch(e){}
+    try{const f=await c.h.getFile();const data=await f.arrayBuffer();const wb=XLSX.read(data,{type:'array'});const names=(wb.SheetNames||[]).map(norm);const hasRate=names.some(x=>x.includes('RATE INSOLUTE'));const hasInc=names.some(x=>x.includes('INCASSI'));if(hasRate && hasInc){let score=100;const p=norm(c.path), fn=norm(c.name);if(fn==='BILANCIO 2026.XLSX' || fn==='BILANCIO 2026.XLSM') score+=150;else if(fn.includes('BILANCIO 2026')) score+=120;else if(fn.includes('BILANCIO')) score+=70;if(p.includes('/BILANCIO/2026/')) score+=100;else if(p.includes('/BILANCIO/')) score+=50;if(fn.includes('PREVENTIVO')) score-=100;valid.push({...c,score})}}catch(e){}
   }
-
-  valid.sort((a,b)=>b.score-a.score || a.path.localeCompare(b.path,'it'));
-  return valid[0] || null;
+  valid.sort((a,b)=>b.score-a.score || a.path.localeCompare(b.path,'it'));return valid[0] || null;
 }
-
 openSelected.onclick=async()=>{
-  try{
-    let dir=await rootHandle.getDirectoryHandle(condominioSelect.value);
-    status.textContent='Cerco il bilancio di '+condominioSelect.value+'…';
-    let hit=await findExcel(dir);
-    if(!hit) return alert('Non ho trovato un bilancio valido: cerco un Excel che contenga i fogli "Rate insolute" e "Incassi".');
-    status.textContent='Bilancio valido trovato automaticamente: '+hit.path;
-    const f=await hit.h.getFile();
-    await parseFile(f);
-  }catch(e){alert(e.message)}
+  try{let dir=await rootHandle.getDirectoryHandle(condominioSelect.value);status.textContent='Cerco il bilancio di '+condominioSelect.value+'…';let hit=await findExcel(dir);if(!hit) return alert('Non ho trovato un bilancio valido: cerco un Excel che contenga i fogli "Rate insolute" e "Incassi".');status.textContent='Bilancio valido trovato automaticamente: '+hit.path;const f=await hit.h.getFile();await parseFile(f)}catch(e){alert(e.message)}
 }
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
-}
+if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{})}
 </script></body></html>
