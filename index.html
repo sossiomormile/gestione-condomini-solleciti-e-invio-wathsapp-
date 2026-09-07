@@ -3,234 +3,64 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#123c69">
-<title>Gestione Condomini V2.7</title>
+<title>Gestione Condomini V2.8</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-:root{font-family:system-ui,sans-serif;color:#172033;background:#f3f5f8}*{box-sizing:border-box}
-body{margin:0}header{background:#123c69;color:white;padding:16px;position:sticky;top:0;z-index:3}
-header h1{margin:0;font-size:21px}main{max-width:1050px;margin:auto;padding:12px}
-.card{background:white;border-radius:14px;padding:15px;margin:10px 0;box-shadow:0 2px 12px #0001}
-button,.btn{border:0;border-radius:10px;padding:11px 13px;font-weight:700;background:#123c69;color:#fff}
-button.secondary{background:#667085}button.green{background:#14804a}
-select,input[type=file]{width:100%;padding:11px;border:1px solid #ccd2da;border-radius:9px;background:white}
-.muted{font-size:13px;color:#667085}.hidden{display:none}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
-.person{border:1px solid #e5e7eb;border-radius:12px;margin:9px 0;overflow:hidden}
-.person summary{padding:13px;font-weight:700;cursor:pointer;background:#fafafa}
-.body{padding:12px}.section{margin:12px 0}.section h4{margin:0 0 7px}
-.item{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #f0f0f0}
-.item label{flex:1}.amt{font-weight:700;white-space:nowrap}
-.total{font-size:18px;font-weight:800;padding:10px 0}
-.yellow{background:#fff3bf;border:1px solid #f1cf50;border-radius:10px;padding:10px;margin:10px 0;color:#5c4700}
-.credit{display:flex;gap:8px;padding:6px 0}.credit-amount{color:#c62828;font-weight:900}.net{font-size:19px;font-weight:900;color:#0f5132}.net.negative{color:#c62828}
-.badge{font-size:12px;background:#e8eef7;border-radius:999px;padding:3px 7px}
-.actions{display:flex;gap:7px;flex-wrap:wrap}.actions button{flex:1}
-#status{margin-top:8px}
-#printLetter{display:none;background:white;color:#111;font-family:Arial,sans-serif;padding:28mm 22mm;min-height:297mm}
-#printLetter h1{font-size:20px;text-align:center;margin:0 0 8px}
-#printLetter .letter-sub{text-align:center;font-size:13px;margin-bottom:28px}
-#printLetter .recipient{margin:18px 0;line-height:1.5}
-#printLetter .subject{font-weight:700;margin:22px 0 14px;text-decoration:underline}
-#printLetter p{line-height:1.55}
-#printLetter table{width:100%;border-collapse:collapse;margin:18px 0}
-#printLetter th,#printLetter td{border-bottom:1px solid #bbb;padding:8px 4px;text-align:left;font-size:14px}
-#printLetter th:last-child,#printLetter td:last-child{text-align:right}
-#printLetter .letter-total{font-weight:700;font-size:16px;text-align:right;margin:14px 0}
-#printLetter .letter-credit{margin:8px 0;text-align:right;color:#c62828;font-weight:700}
-#printLetter .letter-net{font-weight:700;font-size:17px;text-align:right;margin:12px 0 24px}
-#printLetter .closing{margin-top:28px}
-@media print{
-  body>*:not(#printLetter){display:none!important}
-  #printLetter{display:block!important;position:absolute;left:0;top:0;width:100%;padding:18mm 20mm;min-height:auto}
-  @page{size:A4;margin:0}
-}
+:root{font-family:system-ui,sans-serif;color:#172033;background:#f3f5f8}*{box-sizing:border-box}body{margin:0}
+header{background:#123c69;color:#fff;padding:16px;position:sticky;top:0;z-index:3}header h1{margin:0;font-size:21px}main{max-width:1050px;margin:auto;padding:12px}
+.card{background:#fff;border-radius:14px;padding:15px;margin:10px 0;box-shadow:0 2px 12px #0001}button,.btn{border:0;border-radius:10px;padding:11px 13px;font-weight:700;background:#123c69;color:#fff;font-size:15px}
+button.secondary{background:#667085}button.green{background:#14804a}button.mail{background:#2563eb}button.legal{background:#7c3aed}button:disabled{opacity:.45;cursor:not-allowed}
+select,input[type=file],input[type=text],input[type=email],input[type=tel],textarea{width:100%;padding:11px;border:1px solid #ccd2da;border-radius:9px;background:#fff;font:inherit}.muted{font-size:13px;color:#667085}.hidden{display:none}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
+.person{border:1px solid #e5e7eb;border-radius:12px;margin:9px 0;overflow:hidden}.person summary{padding:13px;font-weight:700;cursor:pointer;background:#fafafa}.body{padding:12px}.section{margin:12px 0}.section h4{margin:0 0 7px}.item{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #f0f0f0}.item label{flex:1}.amt{font-weight:700;white-space:nowrap}.total{font-size:18px;font-weight:800;padding:10px 0}.yellow{background:#fff3bf;border:1px solid #f1cf50;border-radius:10px;padding:10px;margin:10px 0;color:#5c4700}.credit{display:flex;gap:8px;padding:6px 0}.credit-amount{color:#c62828;font-weight:900}.net{font-size:19px;font-weight:900;color:#0f5132}.net.negative{color:#c62828}.badge{font-size:12px;background:#e8eef7;border-radius:999px;padding:3px 7px}.actions{display:flex;gap:7px;flex-wrap:wrap}.actions button{flex:1;min-width:135px}#status{margin-top:8px}.history{margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px}.history-item{font-size:13px;padding:6px 0;border-bottom:1px dashed #e5e7eb}.reminder{background:#fff7d6;border:1px solid #e9ca63;border-radius:9px;padding:8px;margin:8px 0;font-weight:700}.required-missing{background:#fde8e8;border:1px solid #e57373;color:#8b1e1e;border-radius:10px;padding:10px;margin:10px 0}.config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.config-grid .full{grid-column:1/-1}@media(max-width:650px){.config-grid{grid-template-columns:1fr}}
+#printLetter{display:none;background:#fff;color:#111;font-family:Arial,sans-serif;padding:28mm 22mm;min-height:297mm}#printLetter h1{font-size:18px;text-align:center;margin:0 0 6px}#printLetter .letter-sub{text-align:center;font-size:12px;margin-bottom:24px}#printLetter .recipient{margin:18px 0;line-height:1.5}#printLetter .subject{font-weight:700;margin:20px 0 14px;text-decoration:underline}#printLetter p{line-height:1.5}#printLetter table{width:100%;border-collapse:collapse;margin:15px 0}#printLetter th,#printLetter td{border-bottom:1px solid #bbb;padding:7px 4px;text-align:left;font-size:13px}#printLetter th:last-child,#printLetter td:last-child{text-align:right}#printLetter .letter-total{font-weight:700;font-size:16px;text-align:right;margin:12px 0}#printLetter .letter-credit{margin:7px 0;text-align:right;color:#c62828;font-weight:700}#printLetter .letter-net{font-weight:700;font-size:17px;text-align:right;margin:10px 0 20px}#printLetter .closing{margin-top:24px}
+@media print{body>*:not(#printLetter){display:none!important}#printLetter{display:block!important;position:absolute;left:0;top:0;width:100%;padding:18mm 20mm;min-height:auto}@page{size:A4;margin:0}}
 </style>
 </head>
 <body>
-<header><h1>🏢 Gestione Condomini V2.7</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp/PDF · V2.7</div></header>
+<header><h1>🏢 Gestione Condomini V2.8</h1><div style="font-size:12px;opacity:.85">Excel → controllo insoluti → selezione → compensazioni → WhatsApp / Email / ⚖️ Messa in mora · V2.8</div></header>
 <main>
-<div class="card no-print">
-  <b>1. Apri archivio condomini</b>
-  <p class="muted">Da PC puoi scegliere la cartella <b>Condomini_APP</b>. In alternativa scegli direttamente un file Excel.</p>
-  <div class="row">
-    <button id="folderBtn">📁 Scegli Condomini_APP</button>
-    <label class="btn secondary" style="text-align:center">📊 Scegli Excel<input id="file" type="file" accept=".xlsx,.xlsm,.xls" hidden></label>
-  </div>
-  <div id="folderArea" class="hidden" style="margin-top:10px">
-    <select id="condominioSelect"></select>
-    <button id="openSelected" style="margin-top:8px;width:100%">Analizza condominio selezionato</button>
-  </div>
-  <div id="status" class="muted"></div>
-</div>
+<div class="card no-print"><b>1. Apri archivio condomini</b><p class="muted">Da PC puoi scegliere la cartella <b>Condomini_APP</b>. In alternativa scegli direttamente un file Excel.</p><div class="row"><button id="folderBtn">📁 Scegli Condomini_APP</button><label class="btn secondary" style="text-align:center">📊 Scegli Excel<input id="file" type="file" accept=".xlsx,.xlsm,.xls" hidden></label></div><div id="folderArea" class="hidden" style="margin-top:10px"><select id="condominioSelect"></select><button id="openSelected" style="margin-top:8px;width:100%">Analizza condominio selezionato</button></div><div id="status" class="muted"></div></div>
 <div id="loader" class="card hidden">Analisi del bilancio in corso…</div>
-<div id="results" class="hidden">
-  <div class="card"><b id="building"></b><div class="muted" id="source"></div><div class="muted" style="margin-top:5px">V2.7 · Anagrafica da Incassi · abbinamento per SCALA + INTERNO · incongruenze reali in rosso</div></div>
-  <div class="card no-print"><div class="row"><button onclick="toggleAll(true)">Seleziona tutte le voci</button><button class="secondary" onclick="toggleAll(false)">Deseleziona tutte</button></div></div>
-  <div id="people"></div>
-</div>
-</main>
-<div id="printLetter"></div>
+<div id="results" class="hidden"><div class="card"><b id="building"></b><div class="muted" id="source"></div><div class="muted" style="margin-top:5px">V2.8 · Anagrafica da Incassi · abbinamento per SCALA + INTERNO · incongruenze reali in rosso</div></div>
+<div class="card no-print"><b>Dati obbligatori per la messa in mora</b><div class="muted" style="margin:5px 0 10px">Salvati sul dispositivo per il condominio aperto. Se manca un dato obbligatorio, la messa in mora resta bloccata.</div><div class="config-grid">
+<input id="cfgCondoAddress" placeholder="Indirizzo condominio *"><input id="cfgCondoCf" placeholder="Codice fiscale condominio *"><input id="cfgAdmin" placeholder="Nome amministratore *"><input id="cfgStudio" placeholder="Studio / denominazione *"><input id="cfgStudioAddress" placeholder="Indirizzo studio *"><input id="cfgEmail" type="email" placeholder="Email studio"><input id="cfgPec" type="email" placeholder="PEC studio"><input id="cfgIban" placeholder="IBAN condominio *"><input id="cfgHolder" placeholder="Intestatario conto *"><button class="full" onclick="saveConfig()">💾 Salva dati condominio</button></div><div id="configStatus" class="muted" style="margin-top:8px"></div></div>
+<div class="card no-print"><div class="row"><button onclick="toggleAll(true)">Seleziona tutte le voci</button><button class="secondary" onclick="toggleAll(false)">Deseleziona tutte</button></div></div><div id="people"></div></div>
+</main><div id="printLetter"></div>
 <script>
 const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Math.abs(Number(n)||0));
 const months=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-let rootHandle=null, current=[];
-const file=document.getElementById('file');
-const folderBtn=document.getElementById('folderBtn');
-const folderArea=document.getElementById('folderArea');
-const condominioSelect=document.getElementById('condominioSelect');
-const openSelected=document.getElementById('openSelected');
-const status=document.getElementById('status');
-const loader=document.getElementById('loader');
-const results=document.getElementById('results');
-const building=document.getElementById('building');
-const source=document.getElementById('source');
-const people=document.getElementById('people');
-const printLetter=document.getElementById('printLetter');
-function norm(s){return String(s??'').trim().toUpperCase().replace(/\s+/g,' ')}
-function n(v){let x=Number(v); return Number.isFinite(x)?x:0}
-function approx0(x){return Math.abs(x)<0.01?0:x}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function sheetRows(wb,name){let ws=wb.Sheets[name]; return ws?XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true}):[]}
-function findSheet(wb,needle){return wb.SheetNames.find(x=>norm(x).includes(norm(needle)))}
-async function parseFile(file){
-  loader.classList.remove('hidden'); results.classList.add('hidden');
-  try{let data=await file.arrayBuffer(); let wb=XLSX.read(data,{type:'array',cellDates:true});analyze(wb,file.name)}catch(e){alert('Non riesco a leggere il file: '+e.message)}finally{loader.classList.add('hidden')}
-}
-function analyze(wb,fileName){
-  const riName=findSheet(wb,'RATE INSOLUTE'), incName=findSheet(wb,'INCASSI'), salName=findSheet(wb,'SALDO IMPORTO LAVORI');
-  if(!riName || !incName) throw new Error('Non trovo i fogli necessari. Fogli presenti: '+wb.SheetNames.join(' | '));
-  const ri=sheetRows(wb,riName), inc=sheetRows(wb,incName), sal=salName?sheetRows(wb,salName):[];
-  function scaleFromCell(v){
-    const s=norm(v).replace(/["']/g,' ');
-    let m=s.match(/\bSCALA\s+([A-Z0-9]+)\b/); if(m) return m[1];
-    m=s.match(/\bFABBRICATO\s+([A-Z0-9]+)\b/); if(m) return m[1];
-    m=s.match(/\bFABRICATO\s+([A-Z0-9]+)\b/); return m?m[1]:'';
-  }
-  function rowsWithScale(rows){
-    let scala='';
-    return rows.map((row,r)=>{row=row||[];for(let c=0;c<Math.min(3,row.length);c++){const found=scaleFromCell(row[c]);if(found){scala=found;break}}return {row,r,scala}});
-  }
-  const unitKey=(scala,interno)=>norm(scala)+'|'+norm(interno);
-  const incByUnit=new Map();
-  for(const x of rowsWithScale(inc)){
-    const row=x.row;
-    if(!x.scala || !row[0] || row[2]==null || norm(row[0])==='CONDOMINO') continue;
-    const rec={name:String(row[0]).trim(),scala:x.scala,piano:row[1],interno:row[2],row:x.r};
-    incByUnit.set(unitKey(rec.scala,rec.interno),rec);
-  }
-  function officialFor(scala,interno){if(!scala || interno==null) return null;return incByUnit.get(unitKey(scala,interno))||null}
-  const salByUnit=new Map();
-  for(const x of rowsWithScale(sal)){
-    const row=x.row;
-    if(!x.scala || !row[0] || row[2]==null || norm(row[0])==='CONDOMINO') continue;
-    const off=officialFor(x.scala,row[2]); if(!off) continue;
-    salByUnit.set(unitKey(off.scala,off.interno),{oldName:String(row[0]).trim(),saldo:approx0(n(row[9])),sheet:salName});
-  }
-  const conflictsByUnit=new Map();
-  const comparableSheets=wb.SheetNames.filter(s=>norm(s)!==norm(incName));
-  for(const sname of comparableSheets){
-    const rows=sheetRows(wb,sname);
-    for(const x of rowsWithScale(rows)){
-      const row=x.row;
-      if(!x.scala || !row[0] || row[2]==null || norm(row[0])==='CONDOMINO') continue;
-      const off=officialFor(x.scala,row[2]); if(!off) continue;
-      const other=String(row[0]).trim();
-      if(other.length<3 || /^(TOTALE|SALDO|PAGATO|CREDITI|DEBITI|CONDOMINIO|SCALA|FABBRICATO|FABRICATO)/i.test(other)) continue;
-      if(norm(other)!==norm(off.name)){
-        const k=unitKey(off.scala,off.interno);if(!conflictsByUnit.has(k)) conflictsByUnit.set(k,[]);
-        const arr=conflictsByUnit.get(k), msg={sheet:sname,oldName:other};
-        if(!arr.some(z=>z.sheet===msg.sheet && norm(z.oldName)===norm(msg.oldName))) arr.push(msg);
-      }
-    }
-  }
-  current=[];
-  for(const x of rowsWithScale(ri)){
-    const row=x.row;
-    if(!x.scala || !row[0] || row[2]==null || norm(row[0])==='CONDOMINO') continue;
-    const off=officialFor(x.scala,row[2]); if(!off) continue;
-    const key=unitKey(off.scala,off.interno), monthly=n(row[21]), ordinary=n(row[22]), cong=approx0(n(row[23]));
-    let items=[];
-    let currentMonth=Math.max(0,Math.min(12,Math.round(n(row[17]))));
-    for(let m=0;m<currentMonth;m++){const paidFlag=n(row[3+m]);if(paidFlag<=0 && monthly>0) items.push({type:'ordinary',label:months[m],amount:monthly,selected:true})}
-    const calcOrd=items.reduce((a,z)=>a+z.amount,0);
-    if(Math.abs(calcOrd-ordinary)>0.01) items.push({type:'ordinary',label:'Rettifica ordinario da bilancio',amount:ordinary-calcOrd,selected:true});
-    let debts=[], credits=[];
-    if(cong>0.01) debts.push({type:'cong',label:'Conguaglio a debito',amount:cong,selected:true});
-    if(cong<-0.01) credits.push({label:'Conguaglio / dare-avere a credito',amount:-cong,selected:false});
-    const sm=salByUnit.get(key);
-    if(sm){if(sm.saldo>0.01) debts.push({type:'extra',label:'Saldo lavori infiltrazioni',amount:sm.saldo,selected:true});if(sm.saldo<-0.01) credits.push({label:'Eccedenza/credito lavori infiltrazioni',amount:-sm.saldo,selected:false})}
-    let phone=row[31] ? String(row[31]).replace(/\D/g,'') : '';
-    const conflicts=conflictsByUnit.get(key)||[];
-    current.push({id:current.length,name:off.name,scala:off.scala,piano:off.piano,interno:off.interno,phone,items:[...items,...debts],credits,conflicts});
-  }
-  current.sort((a,b)=>String(a.scala).localeCompare(String(b.scala),'it',{numeric:true}) || Number(a.interno)-Number(b.interno));
-  current.forEach((p,i)=>p.id=i);render(fileName,wb);
-}
-function render(fileName,wb){
-  let title='Condominio';let front=findSheet(wb,'FROTESPIZIO');if(front){let rr=sheetRows(wb,front); if(rr[0]?.[0]) title=rr[0][0]}
-  building.textContent=title; source.textContent='File analizzato: '+fileName;people.innerHTML='';
-  current.forEach(p=>{let el=document.createElement('details'); el.className='person';const bad=p.conflicts && p.conflicts.length;el.innerHTML=`<summary><span style="${bad?'color:#c62828;font-weight:900':''}">${p.name}</span> <span class="badge">Scala ${p.scala} · Int. ${p.interno}</span>${bad?' <span style="color:#c62828">⚠</span>':''}</summary><div class="body" id="p${p.id}"></div>`;people.appendChild(el); renderPerson(p)});
-  results.classList.remove('hidden');
-}
-function renderPerson(p){
-  let box=document.getElementById('p'+p.id);let ord=p.items.filter(x=>x.type==='ordinary'), cong=p.items.filter(x=>x.type==='cong'), extra=p.items.filter(x=>x.type==='extra');
-  const sec=(title,arr)=>arr.length?`<div class=section><h4>${title}</h4>${arr.map(x=>{let idx=p.items.indexOf(x); return `<div class=item><input class="entry" type=checkbox ${x.selected?'checked':''} onchange="setItem(${p.id},${idx},this.checked)"><label>${x.label}</label><span class=amt>${euro(x.amount)}</span></div>`}).join('')}</div>`:'';
-  const warnings=(p.conflicts&&p.conflicts.length)?`<div style="background:#fde8e8;border:1px solid #e57373;border-radius:10px;padding:10px;margin-bottom:12px;color:#8b1e1e"><b>⚠ INCONGRUENZA ANAGRAFICA — DA VERIFICARE</b><div style="font-size:13px;margin-top:5px">Il nominativo ufficiale visualizzato proviene dal foglio <b>Incassi</b>. Negli altri fogli risultano nominativi differenti per la stessa unità:</div>${p.conflicts.map(c=>`<div style="font-size:13px;margin-top:4px">• ${c.sheet}: <b>${c.oldName}</b></div>`).join('')}<div style="font-size:12px;margin-top:6px">Questo avviso è solo interno e non viene inserito automaticamente in WhatsApp/PDF.</div></div>`:'';
-  let credits=p.credits.length?`<div class=yellow><b>⚠ POSSIBILI COMPENSAZIONI</b><div style="font-size:13px;margin:4px 0">Non vengono applicate automaticamente. Decidi tu se usarle.</div>${p.credits.map((c,i)=>`<div class=credit><input type=checkbox ${c.selected?'checked':''} onchange="setCredit(${p.id},${i},this.checked)"><label>${c.label}: <span class="credit-amount">− ${euro(c.amount)}</span></label></div>`).join('')}</div>`:'';
-  box.innerHTML=warnings+sec('Rate ordinarie scoperte',ord)+sec('Conguagli a debito',cong)+sec('Spese straordinarie',extra)+`<div class=total>Totale lordo selezionato: <span id="gross${p.id}"></span></div>${credits}<div class=net>Nuovo totale dopo compensazioni: <span id="net${p.id}"></span></div><div class="actions no-print" style="margin-top:12px"><button class=green onclick="whatsapp(${p.id})">WhatsApp</button><button class=secondary onclick="printOne(${p.id})">PDF / Stampa</button></div>`;recalc(p)
-}
-function setItem(pid,i,v){let p=current[pid];p.items[i].selected=v;recalc(p)}
-function setCredit(pid,i,v){let p=current[pid];p.credits[i].selected=v;recalc(p)}
-function recalc(p){let gross=p.items.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);let comp=p.credits.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);let net=gross-comp;document.getElementById('gross'+p.id).textContent=euro(gross);document.getElementById('net'+p.id).textContent=(net<0?'- ':'')+euro(net)}
-function message(p){
-  const condo=building.textContent.trim()||'Condominio';
-  let lines=['Salve,',condo,'Siamo a ricordarle il versamento delle seguenti rate condominiali.','',`Condomino: ${p.name}`,`Scala ${p.scala} - Interno ${p.interno}`,''];
-  p.items.filter(x=>x.selected).forEach(x=>lines.push(`• ${x.label}: ${euro(x.amount)}`));
-  let gross=p.items.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);
-  lines.push('',`TOTALE LORDO DA PAGARE: ${euro(gross)}`);
-  let cc=p.credits.filter(x=>x.selected);
-  if(cc.length){lines.push('','COMPENSAZIONI SELEZIONATE:');cc.forEach(x=>lines.push(`• ${x.label}: -${euro(x.amount)}`));let net=gross-cc.reduce((a,x)=>a+n(x.amount),0);lines.push(`NUOVO TOTALE DOPO COMPENSAZIONE: ${net<0?'- ':''}${euro(net)}`)}
-  lines.push('','Qualora abbia già provveduto, ritenga nullo il presente promemoria.','','Saluti');
-  return lines.join('\n');
-}
-function whatsapp(id){let p=current[id], phone=p.phone||''; location.href=`https://wa.me/${phone}?text=${encodeURIComponent(message(p))}`}
-function printOne(id){
-  const p=current[id], condo=building.textContent.trim()||'Condominio';
-  const selected=p.items.filter(x=>x.selected), gross=selected.reduce((a,x)=>a+n(x.amount),0), cc=p.credits.filter(x=>x.selected), comp=cc.reduce((a,x)=>a+n(x.amount),0), net=gross-comp;
-  const rows=selected.map(x=>`<tr><td>${esc(x.label)}</td><td>${euro(x.amount)}</td></tr>`).join('');
-  const credits=cc.length?`<div class="letter-credit"><b>Compensazioni selezionate:</b></div>${cc.map(x=>`<div class="letter-credit">${esc(x.label)}: − ${euro(x.amount)}</div>`).join('')}<div class="letter-net">Totale dopo compensazione: ${net<0?'- ':''}${euro(net)}</div>`:'';
-  printLetter.innerHTML=`
-    <h1>${esc(condo)}</h1>
-    <div class="letter-sub">Sollecito quote condominiali</div>
-    <div class="recipient"><b>Destinatario:</b> ${esc(p.name)}<br><b>Unità:</b> Scala ${esc(p.scala)} - Interno ${esc(p.interno)}</div>
-    <div class="subject">Oggetto: sollecito di pagamento quote condominiali</div>
-    <p>Gentile Condomino/a,</p>
-    <p>con la presente siamo a ricordarLe il versamento delle seguenti rate e somme condominiali che, alla data odierna, risultano selezionate nel presente sollecito:</p>
-    <table><thead><tr><th>Voce</th><th>Importo</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="letter-total">Totale lordo da pagare: ${euro(gross)}</div>
-    ${credits}
-    <p>La invitiamo cortesemente a provvedere al pagamento delle somme sopra indicate.</p>
-    <p>Qualora abbia già provveduto, La preghiamo di ritenere nullo il presente sollecito.</p>
-    <p class="closing">Saluti</p>`;
-  setTimeout(()=>window.print(),80);
-}
+let rootHandle=null,current=[];const file=document.getElementById('file'),folderBtn=document.getElementById('folderBtn'),folderArea=document.getElementById('folderArea'),condominioSelect=document.getElementById('condominioSelect'),openSelected=document.getElementById('openSelected'),status=document.getElementById('status'),loader=document.getElementById('loader'),results=document.getElementById('results'),building=document.getElementById('building'),source=document.getElementById('source'),people=document.getElementById('people'),printLetter=document.getElementById('printLetter');
+function norm(s){return String(s??'').trim().toUpperCase().replace(/\s+/g,' ')} function n(v){let x=Number(v);return Number.isFinite(x)?x:0} function approx0(x){return Math.abs(x)<0.01?0:x} function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))} function sheetRows(wb,name){let ws=wb.Sheets[name];return ws?XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true}):[]} function findSheet(wb,needle){return wb.SheetNames.find(x=>norm(x).includes(norm(needle)))}
+function storageKey(){return 'condo_cfg_v28_'+norm(building.textContent||'Condominio')} function histKey(p){return 'condo_hist_v28_'+norm(building.textContent)+'|'+norm(p.name)+'|'+p.scala+'|'+p.interno}
+function getConfig(){try{return JSON.parse(localStorage.getItem(storageKey())||'{}')}catch(e){return {}}}
+function loadConfig(){const c=getConfig();['CondoAddress','CondoCf','Admin','Studio','StudioAddress','Email','Pec','Iban','Holder'].forEach(k=>{const el=document.getElementById('cfg'+k);if(el)el.value=c[k.charAt(0).toLowerCase()+k.slice(1)]||''});validateConfig()}
+function saveConfig(){const c={condoAddress:cfgCondoAddress.value.trim(),condoCf:cfgCondoCf.value.trim(),admin:cfgAdmin.value.trim(),studio:cfgStudio.value.trim(),studioAddress:cfgStudioAddress.value.trim(),email:cfgEmail.value.trim(),pec:cfgPec.value.trim(),iban:cfgIban.value.trim(),holder:cfgHolder.value.trim()};localStorage.setItem(storageKey(),JSON.stringify(c));validateConfig();current.forEach(renderPerson)}
+function missingConfig(){const c=getConfig(), req=[['Indirizzo condominio',c.condoAddress],['Codice fiscale condominio',c.condoCf],['Amministratore',c.admin],['Studio',c.studio],['Indirizzo studio',c.studioAddress],['IBAN',c.iban],['Intestatario conto',c.holder]];return req.filter(x=>!String(x[1]||'').trim()).map(x=>x[0])}
+function validateConfig(){const m=missingConfig(),el=document.getElementById('configStatus');if(el)el.innerHTML=m.length?'<span style="color:#b42318"><b>Mancano:</b> '+m.join(', ')+'</span>':'<span style="color:#067647"><b>Dati obbligatori completi.</b></span>'}
+function getHistory(p){try{return JSON.parse(localStorage.getItem(histKey(p))||'[]')}catch(e){return []}} function addHistory(p,channel,amount){const h=getHistory(p);h.unshift({ts:new Date().toISOString(),channel,amount});localStorage.setItem(histKey(p),JSON.stringify(h.slice(0,30)));renderPerson(p)}
+function historyHtml(p){const h=getHistory(p);if(!h.length)return '<div class="history"><b>Storico comunicazioni</b><div class="muted">Nessun invio registrato.</div></div>';const latest=new Date(h[0].ts),days=Math.floor((Date.now()-latest.getTime())/86400000);const reminder=days>=7?`<div class="reminder">⏰ Sono passati ${days} giorni dall’ultimo contatto.</div>`:'';return `<div class="history"><b>Ultimo contatto:</b> ${latest.toLocaleString('it-IT')} · ${esc(h[0].channel)}${reminder}<details><summary class="muted">Vedi storico</summary>${h.map(x=>`<div class="history-item">${new Date(x.ts).toLocaleString('it-IT')} · <b>${esc(x.channel)}</b> · ${euro(x.amount)}</div>`).join('')}</details></div>`}
+async function parseFile(file){loader.classList.remove('hidden');results.classList.add('hidden');try{let data=await file.arrayBuffer();let wb=XLSX.read(data,{type:'array',cellDates:true});analyze(wb,file.name)}catch(e){alert('Non riesco a leggere il file: '+e.message)}finally{loader.classList.add('hidden')}}
+function analyze(wb,fileName){const riName=findSheet(wb,'RATE INSOLUTE'),incName=findSheet(wb,'INCASSI'),salName=findSheet(wb,'SALDO IMPORTO LAVORI');if(!riName||!incName)throw new Error('Non trovo i fogli necessari. Fogli presenti: '+wb.SheetNames.join(' | '));const ri=sheetRows(wb,riName),inc=sheetRows(wb,incName),sal=salName?sheetRows(wb,salName):[];
+function scaleFromCell(v){const s=norm(v).replace(/["']/g,' ');let m=s.match(/\bSCALA\s+([A-Z0-9]+)\b/);if(m)return m[1];m=s.match(/\bFABBRICATO\s+([A-Z0-9]+)\b/);if(m)return m[1];m=s.match(/\bFABRICATO\s+([A-Z0-9]+)\b/);return m?m[1]:''}
+function rowsWithScale(rows){let scala='';return rows.map((row,r)=>{row=row||[];for(let c=0;c<Math.min(3,row.length);c++){const found=scaleFromCell(row[c]);if(found){scala=found;break}}return {row,r,scala}})}
+const unitKey=(scala,interno)=>norm(scala)+'|'+norm(interno),incByUnit=new Map();for(const x of rowsWithScale(inc)){const row=x.row;if(!x.scala||!row[0]||row[2]==null||norm(row[0])==='CONDOMINO')continue;const rec={name:String(row[0]).trim(),scala:x.scala,piano:row[1],interno:row[2],row:x.r};incByUnit.set(unitKey(rec.scala,rec.interno),rec)}
+function officialFor(scala,interno){if(!scala||interno==null)return null;return incByUnit.get(unitKey(scala,interno))||null}
+const salByUnit=new Map();for(const x of rowsWithScale(sal)){const row=x.row;if(!x.scala||!row[0]||row[2]==null||norm(row[0])==='CONDOMINO')continue;const off=officialFor(x.scala,row[2]);if(!off)continue;salByUnit.set(unitKey(off.scala,off.interno),{oldName:String(row[0]).trim(),saldo:approx0(n(row[9])),sheet:salName})}
+const conflictsByUnit=new Map(),comparableSheets=wb.SheetNames.filter(s=>norm(s)!==norm(incName));for(const sname of comparableSheets){const rows=sheetRows(wb,sname);for(const x of rowsWithScale(rows)){const row=x.row;if(!x.scala||!row[0]||row[2]==null||norm(row[0])==='CONDOMINO')continue;const off=officialFor(x.scala,row[2]);if(!off)continue;const other=String(row[0]).trim();if(other.length<3||/^(TOTALE|SALDO|PAGATO|CREDITI|DEBITI|CONDOMINIO|SCALA|FABBRICATO|FABRICATO)/i.test(other))continue;if(norm(other)!==norm(off.name)){const k=unitKey(off.scala,off.interno);if(!conflictsByUnit.has(k))conflictsByUnit.set(k,[]);const arr=conflictsByUnit.get(k),msg={sheet:sname,oldName:other};if(!arr.some(z=>z.sheet===msg.sheet&&norm(z.oldName)===norm(msg.oldName)))arr.push(msg)}}}
+current=[];for(const x of rowsWithScale(ri)){const row=x.row;if(!x.scala||!row[0]||row[2]==null||norm(row[0])==='CONDOMINO')continue;const off=officialFor(x.scala,row[2]);if(!off)continue;const key=unitKey(off.scala,off.interno),monthly=n(row[21]),ordinary=n(row[22]),cong=approx0(n(row[23]));let items=[],currentMonth=Math.max(0,Math.min(12,Math.round(n(row[17]))));for(let m=0;m<currentMonth;m++){const paidFlag=n(row[3+m]);if(paidFlag<=0&&monthly>0)items.push({type:'ordinary',label:months[m],amount:monthly,selected:true})}const calcOrd=items.reduce((a,z)=>a+z.amount,0);if(Math.abs(calcOrd-ordinary)>0.01)items.push({type:'ordinary',label:'Rettifica ordinario da bilancio',amount:ordinary-calcOrd,selected:true});let debts=[],credits=[];if(cong>0.01)debts.push({type:'cong',label:'Conguaglio a debito',amount:cong,selected:true});if(cong<-0.01)credits.push({label:'Conguaglio / dare-avere a credito',amount:-cong,selected:false});const sm=salByUnit.get(key);if(sm){if(sm.saldo>0.01)debts.push({type:'extra',label:'Saldo lavori infiltrazioni',amount:sm.saldo,selected:true});if(sm.saldo<-0.01)credits.push({label:'Eccedenza/credito lavori infiltrazioni',amount:-sm.saldo,selected:false})}let phone=row[31]?String(row[31]).replace(/\D/g,''):'';const conflicts=conflictsByUnit.get(key)||[];current.push({id:current.length,name:off.name,scala:off.scala,piano:off.piano,interno:off.interno,phone,items:[...items,...debts],credits,conflicts,recipientAddress:''})}
+current.sort((a,b)=>String(a.scala).localeCompare(String(b.scala),'it',{numeric:true})||Number(a.interno)-Number(b.interno));current.forEach((p,i)=>p.id=i);render(fileName,wb)}
+function render(fileName,wb){let title='Condominio';let front=findSheet(wb,'FROTESPIZIO');if(front){let rr=sheetRows(wb,front);if(rr[0]?.[0])title=rr[0][0]}building.textContent=title;source.textContent='File analizzato: '+fileName;people.innerHTML='';current.forEach(p=>{let el=document.createElement('details');el.className='person';const bad=p.conflicts&&p.conflicts.length;el.innerHTML=`<summary><span style="${bad?'color:#c62828;font-weight:900':''}">${esc(p.name)}</span> <span class="badge">Scala ${esc(p.scala)} · Int. ${esc(p.interno)}</span>${bad?' <span style="color:#c62828">⚠</span>':''}</summary><div class="body" id="p${p.id}"></div>`;people.appendChild(el);renderPerson(p)});results.classList.remove('hidden');loadConfig()}
+function renderPerson(p){let box=document.getElementById('p'+p.id);if(!box)return;let ord=p.items.filter(x=>x.type==='ordinary'),cong=p.items.filter(x=>x.type==='cong'),extra=p.items.filter(x=>x.type==='extra');const sec=(title,arr)=>arr.length?`<div class=section><h4>${title}</h4>${arr.map(x=>{let idx=p.items.indexOf(x);return `<div class=item><input class="entry" type=checkbox ${x.selected?'checked':''} onchange="setItem(${p.id},${idx},this.checked)"><label>${esc(x.label)}</label><span class=amt>${euro(x.amount)}</span></div>`}).join('')}</div>`:'';const warnings=(p.conflicts&&p.conflicts.length)?`<div style="background:#fde8e8;border:1px solid #e57373;border-radius:10px;padding:10px;margin-bottom:12px;color:#8b1e1e"><b>⚠ INCONGRUENZA ANAGRAFICA — DA VERIFICARE</b>${p.conflicts.map(c=>`<div style="font-size:13px;margin-top:4px">• ${esc(c.sheet)}: <b>${esc(c.oldName)}</b></div>`).join('')}<div style="font-size:12px;margin-top:6px">Avviso interno: non viene inserito automaticamente nei messaggi.</div></div>`:'';let credits=p.credits.length?`<div class=yellow><b>⚠ POSSIBILI COMPENSAZIONI</b><div style="font-size:13px;margin:4px 0">Non vengono applicate automaticamente. Decidi tu se usarle.</div>${p.credits.map((c,i)=>`<div class=credit><input type=checkbox ${c.selected?'checked':''} onchange="setCredit(${p.id},${i},this.checked)"><label>${esc(c.label)}: <span class="credit-amount">− ${euro(c.amount)}</span></label></div>`).join('')}</div>`:'';const miss=missingConfig();box.innerHTML=warnings+sec('Rate ordinarie scoperte',ord)+sec('Conguagli a debito',cong)+sec('Spese straordinarie',extra)+`<div class=total>Totale lordo selezionato: <span id="gross${p.id}"></span></div>${credits}<div class=net>Nuovo totale dopo compensazioni: <span id="net${p.id}"></span></div><div style="margin-top:10px"><input id="addr${p.id}" type="text" placeholder="Indirizzo destinatario per messa in mora *" value="${esc(p.recipientAddress||'')}" oninput="current[${p.id}].recipientAddress=this.value"></div>${miss.length?`<div class="required-missing">⚠ Messa in mora bloccata: completa prima i dati del condominio sopra.</div>`:''}<div class="actions no-print" style="margin-top:12px"><button class=green onclick="whatsapp(${p.id})">◉ WhatsApp</button><button class=mail onclick="emailOne(${p.id})">✉️ Email</button><button class=legal onclick="messaInMora(${p.id})" ${miss.length?'disabled':''}>⚖️ Messa in mora</button></div>${historyHtml(p)}`;recalc(p)}
+function setItem(pid,i,v){let p=current[pid];p.items[i].selected=v;recalc(p)} function setCredit(pid,i,v){let p=current[pid];p.credits[i].selected=v;recalc(p)} function calc(p){let gross=p.items.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0),comp=p.credits.filter(x=>x.selected).reduce((a,x)=>a+n(x.amount),0);return {gross,comp,net:gross-comp}} function recalc(p){let c=calc(p),g=document.getElementById('gross'+p.id),ne=document.getElementById('net'+p.id);if(g)g.textContent=euro(c.gross);if(ne)ne.textContent=(c.net<0?'- ':'')+euro(c.net)}
+function message(p){const condo=building.textContent.trim()||'Condominio';let lines=['Salve,',condo,'Siamo a ricordarle il versamento delle seguenti rate condominiali.','',`Condomino: ${p.name}`,`Scala ${p.scala} - Interno ${p.interno}`,''];p.items.filter(x=>x.selected).forEach(x=>lines.push(`• ${x.label}: ${euro(x.amount)}`));let c=calc(p);lines.push('',`TOTALE LORDO DA PAGARE: ${euro(c.gross)}`);let cc=p.credits.filter(x=>x.selected);if(cc.length){lines.push('','COMPENSAZIONI SELEZIONATE:');cc.forEach(x=>lines.push(`• ${x.label}: -${euro(x.amount)}`));lines.push(`NUOVO TOTALE DOPO COMPENSAZIONE: ${c.net<0?'- ':''}${euro(c.net)}`)}lines.push('','Qualora abbia già provveduto, ritenga nullo il presente promemoria.','','Saluti');return lines.join('\n')}
+function whatsapp(id){let p=current[id],c=calc(p);addHistory(p,'WhatsApp - apertura invio',c.net);let phone=p.phone||'';location.href=`https://wa.me/${phone}?text=${encodeURIComponent(message(p))}`}
+function emailOne(id){let p=current[id],c=calc(p),cfg=getConfig();addHistory(p,'Email - apertura invio',c.net);let subj=`Sollecito quote condominiali - ${building.textContent.trim()} - ${p.name}`;location.href=`mailto:${encodeURIComponent(cfg.email||'')}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(message(p))}`}
+function messaInMora(id){const p=current[id],cfg=getConfig(),miss=missingConfig();const addr=(document.getElementById('addr'+id)?.value||p.recipientAddress||'').trim();if(miss.length){alert('Messa in mora NON generata. Mancano: '+miss.join(', '));return}if(!addr){alert('Messa in mora NON generata: manca l’indirizzo del destinatario.');return}const selected=p.items.filter(x=>x.selected);if(!selected.length){alert('Messa in mora NON generata: non hai selezionato alcuna voce da richiedere.');return}const c=calc(p),cc=p.credits.filter(x=>x.selected),rows=selected.map(x=>`<tr><td>${esc(x.label)}</td><td>${euro(x.amount)}</td></tr>`).join(''),credits=cc.length?`<div class="letter-credit"><b>Partite compensabili selezionate:</b></div>${cc.map(x=>`<div class="letter-credit">${esc(x.label)}: − ${euro(x.amount)}</div>`).join('')}<div class="letter-net">Importo risultante dopo le compensazioni selezionate: ${c.net<0?'- ':''}${euro(c.net)}</div>`:'';
+printLetter.innerHTML=`<h1>${esc(building.textContent.trim())}</h1><div class="letter-sub">${esc(cfg.condoAddress)} · C.F. ${esc(cfg.condoCf)}<br>Amministratore: ${esc(cfg.admin)} · ${esc(cfg.studio)} · ${esc(cfg.studioAddress)}${cfg.pec?` · PEC ${esc(cfg.pec)}`:''}</div><div class="recipient"><b>Spett.le ${esc(p.name)}</b><br>${esc(addr)}<br>Unità immobiliare: Scala ${esc(p.scala)} - Interno ${esc(p.interno)}</div><div class="subject">Oggetto: costituzione in mora per omesso pagamento di oneri condominiali</div><p>Con la presente, nella qualità di Amministratore del Condominio sopra indicato, La invitiamo e formalmente diffidiamo a provvedere al pagamento delle somme condominiali di seguito specificate, risultanti insolute alla data odierna.</p><table><thead><tr><th>Voce</th><th>Importo</th></tr></thead><tbody>${rows}</tbody></table><div class="letter-total">TOTALE LORDO DOVUTO: ${euro(c.gross)}</div>${credits}<p>La presente vale quale formale costituzione in mora ai sensi e per gli effetti dell'art. 1219 c.c. La invitiamo a regolarizzare la posizione entro 10 giorni dal ricevimento della presente, salvo diverso termine deliberato o già comunicato.</p><p>In difetto, l'Amministratore potrà procedere alla riscossione coattiva delle somme dovute nei modi previsti dall'art. 63 disp. att. c.c., compresa, ricorrendone i presupposti di legge, la richiesta di decreto ingiuntivo immediatamente esecutivo.</p><p>Si richiama inoltre quanto previsto dall'art. 63 disp. att. c.c. in ordine alla possibilità, in caso di mora protratta per un semestre e nei limiti consentiti dalla legge, di sospendere il condomino moroso dalla fruizione dei servizi comuni suscettibili di godimento separato.</p><p><b>Modalità di pagamento:</b><br>Bonifico intestato a: ${esc(cfg.holder)}<br><b>IBAN: ${esc(cfg.iban)}</b><br>Causale consigliata: ${esc(p.name)} - Scala ${esc(p.scala)} Int. ${esc(p.interno)} - quote condominiali.</p><p>Qualora il pagamento sia già stato eseguito, La invitiamo a trasmetterne evidenza all'Amministrazione per le opportune verifiche contabili.</p><p class="closing">Distinti saluti<br><br><b>${esc(cfg.admin)}</b><br>${esc(cfg.studio)}</p>`;addHistory(p,'⚖️ Messa in mora - generata per stampa/PDF',c.net);setTimeout(()=>window.print(),80)}
 function toggleAll(v){current.forEach(p=>{p.items.forEach(x=>x.selected=v);renderPerson(p)})}
-file.onchange=e=>e.target.files[0]&&parseFile(e.target.files[0]);
-folderBtn.onclick=async()=>{
-  if(!window.showDirectoryPicker){alert('La selezione automatica della cartella è disponibile da Chrome/Edge sul PC. Puoi comunque usare "Scegli Excel".');return}
-  try{rootHandle=await window.showDirectoryPicker({mode:'read'});let opts=[];for await (const [name,h] of rootHandle.entries()) if(h.kind==='directory') opts.push(name);opts.sort((a,b)=>a.localeCompare(b,'it'));condominioSelect.innerHTML=opts.map(x=>`<option>${x}</option>`).join('');folderArea.classList.remove('hidden');status.textContent=`Cartella autorizzata: ${rootHandle.name} — ${opts.length} condomini trovati.`}catch(e){}
-}
-async function findExcel(dir){
-  let candidates=[];
-  async function walk(h,depth,path=''){if(depth>6)return;for await(const [name,x] of h.entries()){const full=path ? path+'/'+name : name;if(x.kind==='file' && /\.(xlsx|xlsm|xls)$/i.test(name) && !/^~\$/i.test(name)){candidates.push({name,h:x,path:full})} else if(x.kind==='directory'){await walk(x,depth+1,full)}}}
-  await walk(dir,0);let valid=[];
-  for(const c of candidates){
-    try{const f=await c.h.getFile();const data=await f.arrayBuffer();const wb=XLSX.read(data,{type:'array'});const names=(wb.SheetNames||[]).map(norm);const hasRate=names.some(x=>x.includes('RATE INSOLUTE'));const hasInc=names.some(x=>x.includes('INCASSI'));if(hasRate && hasInc){let score=100;const p=norm(c.path), fn=norm(c.name);if(fn==='BILANCIO 2026.XLSX' || fn==='BILANCIO 2026.XLSM') score+=150;else if(fn.includes('BILANCIO 2026')) score+=120;else if(fn.includes('BILANCIO')) score+=70;if(p.includes('/BILANCIO/2026/')) score+=100;else if(p.includes('/BILANCIO/')) score+=50;if(fn.includes('PREVENTIVO')) score-=100;valid.push({...c,score})}}catch(e){}
-  }
-  valid.sort((a,b)=>b.score-a.score || a.path.localeCompare(b.path,'it'));return valid[0] || null;
-}
-openSelected.onclick=async()=>{
-  try{let dir=await rootHandle.getDirectoryHandle(condominioSelect.value);status.textContent='Cerco il bilancio di '+condominioSelect.value+'…';let hit=await findExcel(dir);if(!hit) return alert('Non ho trovato un bilancio valido: cerco un Excel che contenga i fogli "Rate insolute" e "Incassi".');status.textContent='Bilancio valido trovato automaticamente: '+hit.path;const f=await hit.h.getFile();await parseFile(f)}catch(e){alert(e.message)}
-}
+file.onchange=e=>e.target.files[0]&&parseFile(e.target.files[0]);folderBtn.onclick=async()=>{if(!window.showDirectoryPicker){alert('La selezione automatica della cartella è disponibile da Chrome/Edge sul PC. Puoi comunque usare "Scegli Excel".');return}try{rootHandle=await window.showDirectoryPicker({mode:'read'});let opts=[];for await(const [name,h] of rootHandle.entries())if(h.kind==='directory')opts.push(name);opts.sort((a,b)=>a.localeCompare(b,'it'));condominioSelect.innerHTML=opts.map(x=>`<option>${esc(x)}</option>`).join('');folderArea.classList.remove('hidden');status.textContent=`Cartella autorizzata: ${rootHandle.name} — ${opts.length} condomini trovati.`}catch(e){}}
+async function findExcel(dir){let candidates=[];async function walk(h,depth,path=''){if(depth>6)return;for await(const [name,x] of h.entries()){const full=path?path+'/'+name:name;if(x.kind==='file'&&/\.(xlsx|xlsm|xls)$/i.test(name)&&!/^~\$/i.test(name)){candidates.push({name,h:x,path:full})}else if(x.kind==='directory'){await walk(x,depth+1,full)}}}await walk(dir,0);let valid=[];for(const c of candidates){try{const f=await c.h.getFile(),data=await f.arrayBuffer(),wb=XLSX.read(data,{type:'array'}),names=(wb.SheetNames||[]).map(norm),hasRate=names.some(x=>x.includes('RATE INSOLUTE')),hasInc=names.some(x=>x.includes('INCASSI'));if(hasRate&&hasInc){let score=100,p=norm(c.path),fn=norm(c.name);if(fn==='BILANCIO 2026.XLSX'||fn==='BILANCIO 2026.XLSM')score+=150;else if(fn.includes('BILANCIO 2026'))score+=120;else if(fn.includes('BILANCIO'))score+=70;if(p.includes('/BILANCIO/2026/'))score+=100;else if(p.includes('/BILANCIO/'))score+=50;if(fn.includes('PREVENTIVO'))score-=100;valid.push({...c,score})}}catch(e){}}valid.sort((a,b)=>b.score-a.score||a.path.localeCompare(b.path,'it'));return valid[0]||null}
+openSelected.onclick=async()=>{try{let dir=await rootHandle.getDirectoryHandle(condominioSelect.value);status.textContent='Cerco il bilancio di '+condominioSelect.value+'…';let hit=await findExcel(dir);if(!hit)return alert('Non ho trovato un bilancio valido: cerco un Excel che contenga i fogli "Rate insolute" e "Incassi".');status.textContent='Bilancio valido trovato automaticamente: '+hit.path;const f=await hit.h.getFile();await parseFile(f)}catch(e){alert(e.message)}};
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{})}
 </script></body></html>
