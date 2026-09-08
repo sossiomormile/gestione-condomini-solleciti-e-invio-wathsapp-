@@ -1,0 +1,23 @@
+(()=>{
+'use strict';
+const CLIENT_ID='697823317404-01qj6tn6qcrklsb251cdup5f7imhaoq3.apps.googleusercontent.com';
+const SCOPE='https://www.googleapis.com/auth/drive.readonly';
+const FOLDER_NAME='Condomini_APP';
+let tokenClient=null,accessToken='';
+const escQ=s=>String(s).replace(/'/g,"\\'");
+function statusMsg(msg,bad=false){const el=document.getElementById('status');if(el){el.textContent=msg;el.style.color=bad?'#b42318':''}}
+function loadGIS(){return new Promise((resolve,reject)=>{if(window.google?.accounts?.oauth2)return resolve();const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.onload=resolve;s.onerror=()=>reject(new Error('Impossibile caricare accesso Google'));document.head.appendChild(s)})}
+async function ensureToken(){await loadGIS();return new Promise((resolve,reject)=>{tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,callback:r=>{if(r.error)return reject(new Error(r.error));accessToken=r.access_token;resolve(accessToken)}});tokenClient.requestAccessToken({prompt:accessToken?'':'consent'})})}
+async function driveList(q,fields='files(id,name,mimeType,modifiedTime)'){const u='https://www.googleapis.com/drive/v3/files?'+new URLSearchParams({q,fields,orderBy:'modifiedTime desc',pageSize:'1000',spaces:'drive'});const r=await fetch(u,{headers:{Authorization:'Bearer '+accessToken}});if(r.status===401){accessToken='';throw new Error('SESSION_EXPIRED')}if(!r.ok)throw new Error('Google Drive: '+r.status);return r.json()}
+async function findFolder(){const q=`name='${escQ(FOLDER_NAME)}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;const d=await driveList(q);if(!d.files?.length)throw new Error('Non trovo la cartella '+FOLDER_NAME+' nel tuo Google Drive. Creala e inserisci dentro i file Excel.');return d.files[0]}
+async function listExcel(folderId){const q=`'${folderId}' in parents and trashed=false`;
+ const d=await driveList(q);return (d.files||[]).filter(f=>/\.(xlsx|xlsm|xls)$/i.test(f.name));}
+async function downloadExcel(meta){const r=await fetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(meta.id)+'?alt=media',{headers:{Authorization:'Bearer '+accessToken}});if(!r.ok)throw new Error('Non riesco a scaricare '+meta.name);const b=await r.blob();return new File([b],meta.name,{type:b.type||'application/octet-stream',lastModified:meta.modifiedTime?new Date(meta.modifiedTime).getTime():Date.now()})}
+async function refreshDrive(){const btn=document.getElementById('folderBtn');try{if(btn){btn.disabled=true;btn.textContent='AGGIORNAMENTO…'}statusMsg('Collegamento a Google Drive…');if(!accessToken)await ensureToken();const folder=await findFolder();const files=await listExcel(folder.id);if(!files.length)throw new Error('La cartella '+FOLDER_NAME+' è vuota: inserisci i file Excel dei condomini.');
+ const sel=document.getElementById('condominioSelect'),area=document.getElementById('folderArea');if(sel){sel.innerHTML='';files.forEach((f,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=f.name;sel.appendChild(o)});sel.dataset.driveFiles=JSON.stringify(files)}if(area)area.classList.remove('hidden');
+ statusMsg('Google Drive collegato · '+files.length+' file trovati in '+FOLDER_NAME+'. Seleziona un condominio e premi “Apri e aggiorna condominio”.');
+ const open=document.getElementById('openSelected');if(open){open.onclick=async()=>{try{open.disabled=true;open.textContent='Aggiornamento…';const idx=Number(sel.value||0),meta=files[idx];statusMsg('Scarico '+meta.name+' da Google Drive…');const f=await downloadExcel(meta);await parseFile(f);statusMsg('Aggiornamento completato da Google Drive: '+meta.name)}catch(e){statusMsg(e.message,true);alert(e.message)}finally{open.disabled=false;open.textContent='Apri e aggiorna condominio'}}}
+ }catch(e){if(e.message==='SESSION_EXPIRED'){accessToken='';statusMsg('Sessione Google scaduta. Premi di nuovo AGGIORNA.',true)}else{statusMsg(e.message,true);alert(e.message)}}finally{if(btn){btn.disabled=false;btn.textContent='AGGIORNA'}}}
+function setup(){const btn=document.getElementById('folderBtn');if(!btn)return;btn.onclick=e=>{e.preventDefault();refreshDrive()};btn.textContent='AGGIORNA';const p=btn.closest('.card')?.querySelector('p.muted');if(p)p.innerHTML='Premi <b>AGGIORNA</b>: il gestionale si collega alla cartella <b>Condomini_APP</b> del tuo Google Drive e legge gli Excel aggiornati.'}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
+})();
