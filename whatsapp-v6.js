@@ -1,28 +1,50 @@
 (()=>{
 'use strict';
 const PENDING_KEY='condo_wa_pending_v7';
+const CONTACT_KEY='condo_contacts_v5';
 function cleanPhone(v){return String(v||'').replace(/\D/g,'')}
 function contactKeyLocal(p){return [String(building?.textContent||''),p.name,p.scala,p.interno].map(x=>String(x??'').trim().toUpperCase()).join('|')}
+function getAllContacts(){try{return JSON.parse(localStorage.getItem(CONTACT_KEY)||'{}')}catch(e){return {}}}
+function getSavedContact(p){return getAllContacts()[contactKeyLocal(p)]||null}
 function savePhoneLocal(p,phone){
   try{
-    const key='condo_contacts_v5';
-    const all=JSON.parse(localStorage.getItem(key)||'{}');
+    const all=getAllContacts();
     const k=contactKeyLocal(p);
     all[k]=Object.assign({},all[k]||{},{phone:String(phone||'')});
-    localStorage.setItem(key,JSON.stringify(all));
+    localStorage.setItem(CONTACT_KEY,JSON.stringify(all));
     p.phone=String(phone||'');
     const input=document.querySelector('#p'+p.id+' .v5phone');
-    if(input)input.value=String(phone||'');
+    if(input){input.value=String(phone||'');input.dataset.ownerChecked='1'}
+  }catch(e){}
+}
+function protectOwnerContacts(){
+  try{
+    if(typeof current==='undefined'||!Array.isArray(current))return;
+    current.forEach(p=>{
+      const input=document.querySelector('#p'+p.id+' .v5phone');
+      if(!input||input.dataset.ownerChecked==='1')return;
+      const saved=getSavedContact(p);
+      if(saved&&cleanPhone(saved.phone)){
+        input.value=String(saved.phone||'');
+        p.phone=String(saved.phone||'');
+      }else{
+        // Nessun contatto salvato per QUESTO nominativo: non ereditare mai il numero dell'occupante/proprietario precedente.
+        input.value='';
+        p.phone='';
+      }
+      input.dataset.ownerChecked='1';
+    });
   }catch(e){}
 }
 function simplifyContacts(){
   document.querySelectorAll('.v5rubrica').forEach(btn=>{btn.style.display='none';});
+  protectOwnerContacts();
   document.querySelectorAll('.v5contacts').forEach(box=>{
     if(!box.querySelector('.wa-note')){
       const note=document.createElement('div');
       note.className='wa-note muted';
       note.style.marginTop='7px';
-      note.textContent='Primo invio: scegli il destinatario in WhatsApp. Quando torni qui, salva una sola volta il suo numero; resterà memorizzato per i prossimi invii.';
+      note.textContent='Primo invio: scegli il destinatario in WhatsApp. Quando torni qui, salva una sola volta il suo numero; resterà memorizzato per i prossimi invii. Se cambia proprietario, il numero non viene trasferito al nuovo nominativo.';
       box.appendChild(note);
     }
   });
@@ -38,7 +60,8 @@ function pendingPerson(){
 function askSavePending(){
   const p=pendingPerson();
   if(!p)return;
-  const existing=cleanPhone((document.querySelector('#p'+p.id+' .v5phone')?.value)||p.phone||'');
+  const saved=getSavedContact(p);
+  const existing=cleanPhone(saved?.phone||'');
   if(existing){localStorage.removeItem(PENDING_KEY);return}
   setTimeout(()=>{
     const value=prompt('Salva il numero WhatsApp di '+p.name+' per i prossimi invii.\nInseriscilo una sola volta (es. 3331234567):','');
@@ -55,7 +78,9 @@ function patchWhatsapp(){
   whatsapp=function(id){
     const p=current[id],c=calc(p);
     const input=document.querySelector('#p'+id+' .v5phone');
-    const raw=(input?.value||p.phone||'').trim();
+    const saved=getSavedContact(p);
+    const typed=(input?.value||'').trim();
+    const raw=typed||(saved?.phone||'').trim();
     const phone=cleanPhone(raw);
     const text=encodeURIComponent(message(p));
     if(phone){
