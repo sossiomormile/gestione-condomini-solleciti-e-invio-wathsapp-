@@ -12,8 +12,17 @@ function savePhone(p,phone){
     p.phone=String(phone||'');
   }catch(e){}
 }
-function enhanceRubrica(){
-  document.querySelectorAll('.v5rubrica').forEach(btn=>{btn.textContent='📇 Scegli dalla rubrica';});
+function simplifyContacts(){
+  document.querySelectorAll('.v5rubrica').forEach(btn=>{btn.style.display='none';});
+  document.querySelectorAll('.v5contacts').forEach(box=>{
+    if(!box.querySelector('.wa-note')){
+      const note=document.createElement('div');
+      note.className='wa-note muted';
+      note.style.marginTop='7px';
+      note.textContent='Se il numero non è già memorizzato, premi WhatsApp e scegli il destinatario direttamente in WhatsApp.';
+      box.appendChild(note);
+    }
+  });
 }
 function patchWhatsapp(){
   if(typeof window.whatsapp!=='function' || typeof window.calc!=='function' || typeof window.message!=='function')return;
@@ -22,13 +31,19 @@ function patchWhatsapp(){
     const input=document.querySelector('#p'+id+' .v5phone');
     const raw=(input?.value||p.phone||'').trim();
     const phone=cleanPhone(raw);
-    if(!phone){alert('Scegli prima il numero dalla rubrica del telefono.');return}
-    savePhone(p,raw);
-    try{window.addHistory(p,'WhatsApp · '+raw+' · apertura invio',c.net)}catch(e){}
-    try{localStorage.setItem('condo_last_whatsapp_v6',JSON.stringify({ts:new Date().toISOString(),condominio:String(window.building?.textContent||''),condomino:p.name,scala:p.scala,interno:p.interno,phone:raw,amount:c.net}))}catch(e){}
-    location.href='https://wa.me/'+phone+'?text='+encodeURIComponent(window.message(p));
+    const text=encodeURIComponent(window.message(p));
+    if(phone){
+      savePhone(p,raw);
+      try{window.addHistory(p,'WhatsApp · '+raw+' · apertura invio',c.net)}catch(e){}
+      try{localStorage.setItem('condo_last_whatsapp_v6',JSON.stringify({ts:new Date().toISOString(),condominio:String(window.building?.textContent||''),condomino:p.name,scala:p.scala,interno:p.interno,phone:raw,amount:c.net}))}catch(e){}
+      location.href='https://wa.me/'+phone+'?text='+text;
+      return;
+    }
+    try{window.addHistory(p,'WhatsApp · selezione destinatario',c.net)}catch(e){}
+    try{localStorage.setItem('condo_last_whatsapp_v6',JSON.stringify({ts:new Date().toISOString(),condominio:String(window.building?.textContent||''),condomino:p.name,scala:p.scala,interno:p.interno,phone:'',amount:c.net}))}catch(e){}
+    location.href='https://api.whatsapp.com/send?text='+text;
   };
 }
-function setup(){enhanceRubrica();patchWhatsapp();const obs=new MutationObserver(()=>{enhanceRubrica();patchWhatsapp()});obs.observe(document.body,{childList:true,subtree:true})}
+function setup(){simplifyContacts();patchWhatsapp();const obs=new MutationObserver(()=>{simplifyContacts();patchWhatsapp()});obs.observe(document.body,{childList:true,subtree:true})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
