@@ -1,16 +1,17 @@
 (()=>{
   const RED='#c62828';
+  const YELLOW='#f4c430';
   const parseEuro=s=>{
     const cleaned=String(s||'').replace(/\s/g,'').replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.');
     const v=Number(cleaned);return Number.isFinite(v)?v:0;
   };
   function applyPriorityColors(){
-    const info=[...document.querySelectorAll('#results .card .muted')].find(el=>el.textContent.includes('Anagrafica da Incassi'));
-    if(info) info.textContent='V2.8 · Anagrafica da Incassi · rosso = almeno 3 mensilità scoperte oppure conguaglio a debito > €50 · anomalie anagrafiche con ⚠';
+    const info=[...document.querySelectorAll('#results .card .muted')].find(el=>el.textContent.includes('Anagrafica da Incassi')||el.textContent.includes('Motore contabile V6'));
+    if(info) info.textContent='Motore contabile V6 · rosso = almeno 3 rate ordinarie scoperte · pallino giallo = conguaglio a debito > €50';
     document.querySelectorAll('#people .person').forEach(card=>{
       const summary=card.querySelector(':scope > summary');
       const nameSpan=summary?.querySelector('span');
-      if(!nameSpan) return;
+      if(!summary||!nameSpan) return;
       let monthlyCount=0, conguaglio=0;
       card.querySelectorAll('.section').forEach(sec=>{
         const title=(sec.querySelector('h4')?.textContent||'').trim();
@@ -24,9 +25,13 @@
           conguaglio=Math.max(0,...[...sec.querySelectorAll('.amt')].map(x=>parseEuro(x.textContent)));
         }
       });
-      const urgent=monthlyCount>=3 || conguaglio>50;
+      const urgent=monthlyCount>=3;
       nameSpan.style.color=urgent?RED:'';
       nameSpan.style.fontWeight=urgent?'900':'';
+      let dot=summary.querySelector('.conguaglio-dot');
+      if(conguaglio>50){
+        if(!dot){dot=document.createElement('span');dot.className='conguaglio-dot';dot.setAttribute('aria-label','Conguaglio superiore a 50 euro');dot.style.cssText=`display:inline-block;width:10px;height:10px;border-radius:50%;background:${YELLOW};margin-left:7px;vertical-align:middle;box-shadow:0 0 0 1px rgba(0,0,0,.18)`;nameSpan.insertAdjacentElement('afterend',dot)}
+      }else if(dot){dot.remove()}
     });
   }
   let scheduled=false;
