@@ -1,0 +1,6 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Gestione Condomini</title><style>html,body{margin:0;height:100%;background:#f3f5f8}#app{width:100%;height:100%;border:0;display:block}#boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-family:system-ui;background:#f3f5f8;color:#17324d;z-index:5}</style></head><body><div id="boot">Apertura Gestione Condomini…</div><iframe id="app" src="legacy-v28.html?v=20260909h" title="Gestione Condomini"></iframe><script>
+const frame=document.getElementById('app'),boot=document.getElementById('boot');
+const scripts=['priority-fix.js?v=20260909h','app-v5.js?v=20260909h','engine-v6.js?v=20260909h','whatsapp-v6.js?v=20260909h','data-safety-v6.js?v=20260909h','drive-sync-v1.js?v=20260909h'];
+function loadOne(doc,i){if(i>=scripts.length){boot.style.display='none';return}const s=doc.createElement('script');s.src=scripts[i];s.onload=()=>loadOne(doc,i+1);s.onerror=()=>{boot.textContent='Errore caricamento aggiornamenti: '+scripts[i]};doc.body.appendChild(s)}
+frame.addEventListener('load',()=>{try{const doc=frame.contentDocument;loadOne(doc,0)}catch(e){boot.textContent='Impossibile avviare il gestionale: '+e.message}});
+</script></body></html>
