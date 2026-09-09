@@ -6,8 +6,8 @@
     const v=Number(cleaned);return Number.isFinite(v)?v:0;
   };
   function applyPriorityColors(){
-    const info=[...document.querySelectorAll('#results .card .muted')].find(el=>el.textContent.includes('Anagrafica da Incassi')||el.textContent.includes('Motore contabile V6'));
-    if(info) info.textContent='Motore contabile V6 · rosso = almeno 3 rate ordinarie scoperte · pallino giallo = conguaglio a debito > €50';
+    const info=[...document.querySelectorAll('#results .card .muted')].find(el=>el.textContent.includes('Anagrafica da Incassi')||el.textContent.includes('Motore contabile V6')||el.textContent.includes('Motore V7'));
+    if(info) info.textContent='Motore V7 · rosso = almeno 3 rate ordinarie effettivamente scoperte · pallino giallo = conguaglio a debito > €50';
     document.querySelectorAll('#people .person').forEach(card=>{
       const summary=card.querySelector(':scope > summary');
       const nameSpan=summary?.querySelector('span');
@@ -15,10 +15,11 @@
       let monthlyCount=0, conguaglio=0;
       card.querySelectorAll('.section').forEach(sec=>{
         const title=(sec.querySelector('h4')?.textContent||'').trim();
-        if(title==='Rate ordinarie scoperte'){
+        if(title==='Rate ordinarie scoperte'||title==='Rate ordinarie'){
           monthlyCount=[...sec.querySelectorAll('.item')].filter(item=>{
             const label=(item.querySelector('label')?.textContent||'').trim();
-            return label && !label.startsWith('Rettifica ordinario da bilancio');
+            const amount=(item.querySelector('.amt')?.textContent||'').trim();
+            return label && !label.startsWith('Rettifica ordinario da bilancio') && !item.classList.contains('ordinary-negative') && !amount.startsWith('−') && !amount.startsWith('-');
           }).length;
         }
         if(title==='Conguagli a debito'){
