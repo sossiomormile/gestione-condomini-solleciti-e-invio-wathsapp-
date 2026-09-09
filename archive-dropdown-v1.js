@@ -3,33 +3,24 @@
 const style=document.createElement('style');
 style.textContent='[data-open-condo]{display:none!important}#driveCondoArea{display:none!important}.archive-dropdown-wrap{margin-top:12px}';
 document.head.appendChild(style);
-let timer=null,obs=null,buildingMenu=false;
-function openByTitle(title){
-  if(!title)return;
-  try{
-    if(typeof openCached==='function'){openCached(title);return;}
-  }catch(e){console.warn('openCached non disponibile',e)}
-  const home=document.getElementById('archiveHome');
-  const b=[...(home?.querySelectorAll('[data-open-condo]')||[])].find(x=>x.dataset.openCondo===title);
-  if(b)b.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+let obs=null,lastSignature='';
+function getButtons(){const home=document.getElementById('archiveHome');return home?[...home.querySelectorAll('[data-open-condo]')]:[]}
+function openCondo(title){const b=getButtons().find(x=>(x.dataset.openCondo||'')===title);if(b){b.click();return true}return false}
+function buildMenu(){
+ const home=document.getElementById('archiveHome');if(!home)return;
+ const buttons=getButtons();if(!buttons.length)return;
+ const titles=buttons.map(b=>b.dataset.openCondo||'').filter(Boolean);
+ const sig=titles.join('\u0001');
+ if(sig===lastSignature && home.querySelector('#archiveCondoSelect'))return;
+ lastSignature=sig;
+ home.querySelector('.archive-dropdown-wrap')?.remove();
+ const wrap=document.createElement('div');wrap.className='archive-dropdown-wrap';
+ const select=document.createElement('select');select.id='archiveCondoSelect';select.style.cssText='width:100%;padding:14px;border:1px solid #ccd2da;border-radius:10px;background:#fff;font-size:16px;position:relative;z-index:20;pointer-events:auto';
+ select.innerHTML='<option value="">Seleziona un condominio…</option>'+titles.map(t=>'<option></option>').join('');
+ titles.forEach((t,i)=>{select.options[i+1].value=t;select.options[i+1].textContent=t});
+ select.onchange=function(){const title=this.value;if(!title)return;openCondo(title)};
+ wrap.appendChild(select);home.appendChild(wrap);
 }
-function transformArchive(){
-  if(buildingMenu)return;
-  const home=document.getElementById('archiveHome');if(!home)return;
-  const buttons=[...home.querySelectorAll('[data-open-condo]')];if(!buttons.length)return;
-  buildingMenu=true;
-  const previous=home.querySelector('#archiveCondoSelect')?.value||'';
-  home.querySelector('.archive-dropdown-wrap')?.remove();
-  const wrap=document.createElement('div');wrap.className='archive-dropdown-wrap';
-  const select=document.createElement('select');select.id='archiveCondoSelect';select.style.cssText='width:100%;padding:14px;border:1px solid #ccd2da;border-radius:10px;background:#fff;font-size:16px';
-  const first=document.createElement('option');first.value='';first.textContent='Seleziona un condominio…';select.appendChild(first);
-  buttons.forEach(b=>{const title=b.dataset.openCondo||b.querySelector('b')?.textContent||'';if(!title)return;const o=document.createElement('option');o.value=title;o.textContent=title;select.appendChild(o)});
-  if(previous&&[...select.options].some(o=>o.value===previous))select.value=previous;
-  select.addEventListener('change',e=>{const title=e.target.value;if(title)openByTitle(title)});
-  wrap.appendChild(select);home.appendChild(wrap);
-  buildingMenu=false;
-}
-function schedule(){if(buildingMenu)return;clearTimeout(timer);timer=setTimeout(transformArchive,20)}
-function start(){const home=document.getElementById('archiveHome');if(home){obs=new MutationObserver(schedule);obs.observe(home,{childList:true,subtree:true});transformArchive()}else setTimeout(start,25)}
+function start(){const home=document.getElementById('archiveHome');if(!home){setTimeout(start,50);return}buildMenu();obs=new MutationObserver(()=>{const sig=getButtons().map(b=>b.dataset.openCondo||'').filter(Boolean).join('\u0001');if(sig!==lastSignature)setTimeout(buildMenu,0)});obs.observe(home,{childList:true,subtree:true})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
