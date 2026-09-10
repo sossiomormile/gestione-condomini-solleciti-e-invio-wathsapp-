@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const MARK='condo_engine_refresh_audit_hardening_v2_done';
+const MARK='condo_engine_refresh_ordinary_cong_v1_done';
 if(localStorage.getItem(MARK)==='1')return;
 try{
   localStorage.removeItem('condo_drive_sync_state_v7');
