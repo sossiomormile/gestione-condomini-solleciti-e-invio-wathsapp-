@@ -1,13 +1,30 @@
 (()=>{
 'use strict';
-const REFRESH_MARK='condo_guard_v3_refresh_done';
-try{if(localStorage.getItem(REFRESH_MARK)!=='1'){localStorage.removeItem('condo_drive_sync_state_v7');localStorage.setItem(REFRESH_MARK,'1')}}catch(e){}
+const REFRESH_MARK='condo_guard_v4_refresh_done';
+try{
+  if(localStorage.getItem(REFRESH_MARK)!=='1'){
+    localStorage.removeItem('condo_drive_sync_state_v7');
+    localStorage.setItem(REFRESH_MARK,'1');
+  }
+  const raw=localStorage.getItem('condo_archive_v5');
+  if(raw){
+    const a=JSON.parse(raw);
+    let changed=false;
+    for(const rec of Object.values(a?.condomini||{}))for(const p of rec?.people||[]){
+      const old=Array.isArray(p.conflicts)?p.conflicts:[];
+      const clean=old.filter(x=>typeof x==='string');
+      if(clean.length!==old.length){p.conflicts=clean;changed=true}
+    }
+    if(changed)localStorage.setItem('condo_archive_v5',JSON.stringify(a));
+  }
+}catch(e){}
 const base=window.condoAnalyzeV7;
 if(typeof base!=='function')return;
 const BAD=/\bPREVENTIVO\b|\bRIPARTO PREVENTIVO\b/i;
 function cleanResult(r){
   for(const p of r.people||[]){
-    const technical=(p.conflicts||[]).some(x=>/voce tecnica\/parte comune/i.test(String(x)));
+    p.conflicts=(Array.isArray(p.conflicts)?p.conflicts:[]).filter(x=>typeof x==='string');
+    const technical=p.conflicts.some(x=>/voce tecnica\/parte comune/i.test(String(x)));
     if(technical){p.items=[];p.credits=[]}
     else{
       p.items=(p.items||[]).filter(x=>!(x.type==='extra'&&BAD.test(String(x.label||''))));
