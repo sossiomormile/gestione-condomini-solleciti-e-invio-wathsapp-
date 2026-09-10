@@ -1,0 +1,16 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Condominio_App 1.0 TEST</title></head><body><script>
+(function(){
+  const PREFIX='condo_test_1_0__';
+  const ls=window.localStorage,p=Storage.prototype,g=p.getItem,s=p.setItem,r=p.removeItem,c=p.clear,k=p.key;
+  p.getItem=function(x){return this===ls?g.call(this,PREFIX+String(x)):g.call(this,x)};
+  p.setItem=function(x,v){return this===ls?s.call(this,PREFIX+String(x),v):s.call(this,x,v)};
+  p.removeItem=function(x){return this===ls?r.call(this,PREFIX+String(x)):r.call(this,x)};
+  p.clear=function(){if(this!==ls)return c.call(this);const del=[];for(let i=0;i<this.length;i++){const q=k.call(this,i);if(q&&q.startsWith(PREFIX))del.push(q)}del.forEach(q=>r.call(this,q))};
+  try{const idb=window.indexedDB,ip=Object.getPrototypeOf(idb),op=ip.open;ip.open=function(name,ver){return ver===undefined?op.call(this,PREFIX+name):op.call(this,PREFIX+name,ver)}}catch(e){}
+})();
+const DB='condo_persistent_v1',STORE='kv',KEYS=['condo_archive_v5','condo_last_update_v5','condo_contacts_v5'];
+function openDb(){return new Promise((resolve,reject)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>{const db=q.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE)};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)})}
+async function restore(){try{const db=await openDb();const tx=db.transaction(STORE,'readonly'),st=tx.objectStore(STORE);for(const key of KEYS){if(localStorage.getItem(key))continue;const v=await new Promise(res=>{const q=st.get(key);q.onsuccess=()=>res(q.result||'');q.onerror=()=>res('')});if(v)localStorage.setItem(key,v)}db.close()}catch(e){}}
+function boot(){fetch('../legacy-v28.html?v=20260908g').then(r=>{if(!r.ok)throw new Error('Errore caricamento programma');return r.text()}).then(t=>{const patch='<scr'+'ipt src="../archive-dropdown-v1.js?v=20260909-drop5"></scr'+'ipt><scr'+'ipt src="../priority-fix.js?v=20260909-prio7"></scr'+'ipt><scr'+'ipt src="../app-v5.js?v=20260908g"></scr'+'ipt><scr'+'ipt src="../persistent-cache-v1.js?v=20260909-cache1"></scr'+'ipt><scr'+'ipt src="../whatsapp-v6.js?v=20260908g"></scr'+'ipt><scr'+'ipt src="../engine-v7.js?v=20260910-audit2"></scr'+'ipt><scr'+'ipt src="https://raw.githack.com/sossiomormile/gestione-condomini-solleciti-e-invio-wathsapp-/Condominio_App-1.0-test/engine-guard-v2.js"></scr'+'ipt><scr'+'ipt src="../folder-name-fix-v1.js?v=20260909-name1"></scr'+'ipt><scr'+'ipt src="../engine-refresh-v1.js?v=20260910-ordinarycong1"></scr'+'ipt><scr'+'ipt src="../drive-sync-v1.js?v=20260910-drive12"></scr'+'ipt><scr'+'ipt>(function(){function a(){document.title="Condominio_App 1.0 TEST";var h=document.querySelector("header h1");if(h)h.textContent="🏢 Condominio_App 1.0 TEST";}setTimeout(a,150);setTimeout(a,500)})();</scr'+'ipt>';t=t.replace('</body>',patch+'</body>');document.open();document.write(t);document.close()}).catch(e=>{document.body.innerHTML='<div style="font-family:system-ui;padding:20px">Impossibile avviare la versione TEST: '+e.message+'</div>'})}
+restore().finally(boot);
+</script></body></html>
