@@ -1,5 +1,7 @@
 (()=>{
 'use strict';
+const REFRESH_MARK='condo_guard_v2_refresh_done';
+try{if(localStorage.getItem(REFRESH_MARK)!=='1'){localStorage.removeItem('condo_drive_sync_state_v7');localStorage.setItem(REFRESH_MARK,'1')}}catch(e){}
 const base=window.condoAnalyzeV7;
 if(typeof base!=='function')return;
 const BAD=/\bPREVENTIVO\b|\bRIPARTO PREVENTIVO\b/i;
