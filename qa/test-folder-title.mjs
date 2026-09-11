@@ -1,0 +1,7 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+class StorageMock{constructor(){this.m=new Map()}getItem(k){return this.m.has(k)?this.m.get(k):null}setItem(k,v){this.m.set(k,String(v))}removeItem(k){this.m.delete(k)}}
+const localStorage=new StorageMock(),building={textContent:''};
+const context={window:{},localStorage,building,console,renderArchiveHome:()=>{},render:(fileName,wb)=>{building.textContent='Bilancio 2026';localStorage.setItem('condo_archive_v5',JSON.stringify({condomini:{'Bilancio 2026':{title:'Bilancio 2026',file:fileName,updatedAt:new Date().toISOString(),people:[{name:'A'}]}}}))},setTimeout:fn=>fn()};context.window=context;vm.createContext(context);vm.runInContext(fs.readFileSync('folder-name-fix-v1.js','utf8'),context);
+if(typeof context.window.condoSetFolderTitle!=='function')throw new Error('API titolo cartella non esposta');context.window.condoSetFolderTitle('Condominio Reale');context.render('Bilancio 2026.xlsx',{});const a=JSON.parse(localStorage.getItem('condo_archive_v5'));if(a.condomini['Bilancio 2026'])throw new Error('Titolo generico Bilancio rimasto in archivio');if(!a.condomini['Condominio Reale']||a.condomini['Condominio Reale'].title!=='Condominio Reale')throw new Error('Cartella Drive non usata come titolo archivio');if(building.textContent!=='Condominio Reale')throw new Error('Titolo visualizzato non allineato alla cartella Drive');
+console.log('FOLDER TITLE TEST PASSED');
