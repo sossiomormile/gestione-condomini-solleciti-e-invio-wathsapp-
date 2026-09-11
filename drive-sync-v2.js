@@ -63,8 +63,15 @@ async function rebuildAll(rows){
  for(let i=0;i<ok.length;i++){
    const r=ok[i];statusMsg('Ricarico da zero '+r.folder.name+' · '+r.balance.name+' ('+(i+1)+'/'+ok.length+')…');
    window.condoSetFolderTitle?.(r.folder.name);window.condoSourcePath=sourcePath(r);
-   try{const f=await downloadExcel(r.balance);await parseFile(f);newState[r.folder.id||r.folder.name]=sig(r);updated++}
-   finally{window.condoSourcePath='';window.condoClearFolderTitle?.()}
+   try{
+     const f=await downloadExcel(r.balance),src=document.getElementById('source');
+     if(src)src.textContent='';
+     if(typeof current!=='undefined')current=[];
+     await parseFile(f);
+     const parsedOk=src?String(src.textContent||'').includes(r.balance.name):(typeof current!=='undefined'&&Array.isArray(current));
+     if(!parsedOk)throw new Error('Analisi non completata per '+r.folder.name+' · '+r.balance.name);
+     newState[r.folder.id||r.folder.name]=sig(r);updated++;
+   }finally{window.condoSourcePath='';window.condoClearFolderTitle?.()}
  }
  localStorage.setItem(SYNC_KEY,JSON.stringify(newState));
  return{updated};
