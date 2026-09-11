@@ -26,5 +26,7 @@ jobs:
         run: node qa/test-v1-focus.mjs
       - name: Test Drive full refresh transaction
         run: node qa/test-drive-full-refresh.mjs
+      - name: Test runtime self-check integration
+        run: node qa/test-v1-self-check.mjs
       - name: Verify protected behavior and change authorization
         run: node qa/verify-protected-behavior.mjs
