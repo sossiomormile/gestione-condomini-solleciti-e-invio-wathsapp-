@@ -1,0 +1,28 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#7c3aed"><title>Condominio APP · TEST OAuth</title><style>body{margin:0;font-family:system-ui;background:#f3f5f8;color:#17324d}#boot{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}#boot b{display:block;color:#7c3aed;margin-bottom:8px}</style></head><body><div id="boot"><div><b>VERSIONE TEST</b>Apertura Gestione Condomini…</div></div><script>
+(async()=>{
+ const boot=document.getElementById('boot');
+ const BASE='https://raw.githack.com/sossiomormile/gestione-condomini-solleciti-e-invio-wathsapp-/980326101fdf229a777b3a14e572283039e3736b/';
+ try{
+  const r=await fetch(BASE+'legacy-v28.html?phoneTest=oauth',{cache:'no-store'});
+  if(!r.ok)throw new Error('legacy-v28.html '+r.status);
+  let t=await r.text();
+  const banner='<div id="testVersionBanner" style="position:sticky;top:0;z-index:9999;background:#7c3aed;color:white;text-align:center;padding:7px 10px;font:700 13px system-ui">🧪 VERSIONE TEST · origine GitHub Pages</div><div id="testLoadState" style="background:#fff3cd;color:#664d03;text-align:center;padding:6px 10px;font:700 12px system-ui">⏳ Preparazione moduli TEST…</div>';
+  t=t.replace('<body>','<body>'+banner);
+  const scripts=['priority-fix.js?v=20260909h','app-v5.js?v=20260909h','engine-v6.js?v=20260911-conguagli5','unit-identity-fix-v1.js?v=20260911-unit2','conguaglio-position-fix-v2.js?v=20260911-rates4','v1-source-order.js?v=20260911-order1','v1-focus-ordinary-conguagli.js?v=20260911-v1focus1','whatsapp-v6.js?v=20260909h','v1-self-check.js?v=20260911-selfcheck1','drive-sync-v2.js?v=20260911-fullrefresh2'];
+  const loader='<script>(function(){\n'+
+   'const BASE='+JSON.stringify(BASE)+';\n'+
+   'const scripts='+JSON.stringify(scripts)+';\n'+
+   'const state=document.getElementById("testLoadState");let ready=false;\n'+
+   'function getBtn(){return document.getElementById("folderBtn")}\n'+
+   'function lockBtn(){const b=getBtn();if(b){b.disabled=true;b.style.opacity=".5"}}\n'+
+   'function fail(msg){ready=false;lockBtn();state.style.background="#f8d7da";state.style.color="#842029";state.textContent="❌ TEST NON PRONTO · "+msg;}\n'+
+   'document.addEventListener("click",function(e){if(e.target&&e.target.id==="folderBtn"&&!ready){e.preventDefault();e.stopImmediatePropagation();fail("attendi il completamento del caricamento");}},true);\n'+
+   'function done(){setTimeout(function(){const missing=[];if(!window.condoDriveSyncV2)missing.push("Drive V2");if(!window.condoSelfCheckV1)missing.push("autocollaudo");if(!window.condoV1SourceOrder)missing.push("ordine nominativi");if(!window.condoV1Focus)missing.push("filtro V1");const btn=getBtn();if(!missing.length&&btn){ready=true;btn.disabled=false;btn.style.opacity="1";btn.textContent="AGGIORNA";state.style.background="#d1e7dd";state.style.color="#0f5132";state.textContent="✅ TEST PRONTO · moduli caricati · puoi premere AGGIORNA";}else fail("mancano: "+(missing.join(", ")||"pulsante AGGIORNA"));},200);}\n'+
+   'function load(i){if(i>=scripts.length)return done();lockBtn();state.textContent="⏳ Caricamento "+(i+1)+"/"+scripts.length+" · "+scripts[i].split("?")[0];const s=document.createElement("script");s.src=BASE+scripts[i];s.async=false;let ended=false;const tm=setTimeout(function(){if(!ended){ended=true;fail("timeout su "+scripts[i].split("?")[0]);}},12000);s.onload=function(){if(ended)return;ended=true;clearTimeout(tm);load(i+1)};s.onerror=function(){if(ended)return;ended=true;clearTimeout(tm);fail("errore caricamento "+scripts[i].split("?")[0])};document.body.appendChild(s);}\n'+
+   'setTimeout(function(){lockBtn();load(0)},50);\n'+
+  '})();<\/script>';
+  t=t.replace('</body>',loader+'</body>');
+  document.open();document.write(t);document.close();
+ }catch(e){boot.innerHTML='<div><b>VERSIONE TEST</b>Impossibile avviare il gestionale.<br><small>'+String(e.message||e)+'</small></div>'}
+})();
+</script></body></html>
