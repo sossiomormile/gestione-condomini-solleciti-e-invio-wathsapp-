@@ -3,6 +3,7 @@
 if(typeof window.condoAnalyzeV6!=='function'||typeof XLSX==='undefined')return;
 const baseAnalyze=window.condoAnalyzeV6;
 const nrm=x=>String(x??'').trim().replace(/\s+/g,' ').toUpperCase();
+const MONTH_NUM={GENNAIO:1,FEBBRAIO:2,MARZO:3,APRILE:4,MAGGIO:5,GIUGNO:6,LUGLIO:7,AGOSTO:8,SETTEMBRE:9,OTTOBRE:10,NOVEMBRE:11,DICEMBRE:12};
 function sanitizeWorkbook(wb){
   const clone={...wb,Sheets:{...wb.Sheets}};
   for(const [name,ws0] of Object.entries(wb.Sheets||{})){
@@ -27,11 +28,32 @@ function sanitizeWorkbook(wb){
   }
   return clone;
 }
+function exerciseStartYear(result){
+  const inc=result?.people?.find(p=>p?._v6?.inc)?._v6?.inc||'';
+  const m=String(inc).match(/(20\d{2})\s*[-/]\s*(?:20)?\d{2}/);
+  return m?Number(m[1]):null;
+}
+function removeFutureOrdinary(result){
+  const startYear=exerciseStartYear(result);
+  if(!startYear)return result;
+  const now=new Date(),cy=now.getFullYear(),cm=now.getMonth()+1;
+  for(const p of result.people||[]){
+    p.items=(p.items||[]).filter(item=>{
+      if(item.type!=='ordinary')return true;
+      const mn=MONTH_NUM[nrm(item.label)];
+      if(!mn)return true;
+      const y=mn>=6?startYear:startYear+1;
+      return y<cy||(y===cy&&mn<=cm);
+    });
+    if(p._v6)p._v6.gross=Math.round((p.items||[]).reduce((s,x)=>s+(Number(x.amount)||0),0)*100)/100;
+  }
+  return result;
+}
 function analyzePatched(wb,fileName){
-  return baseAnalyze(sanitizeWorkbook(wb),fileName);
+  return removeFutureOrdinary(baseAnalyze(sanitizeWorkbook(wb),fileName));
 }
 window.condoAnalyzeV6=analyzePatched;
-window.condoAnalyzeAssociationFixV2={sanitizeWorkbook,analyzePatched};
+window.condoAnalyzeAssociationFixV2={sanitizeWorkbook,analyzePatched,removeFutureOrdinary};
 parseFile=async function(file){
   loader.classList.remove('hidden');results.classList.add('hidden');
   try{
