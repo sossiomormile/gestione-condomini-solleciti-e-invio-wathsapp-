@@ -24,7 +24,9 @@ const appCurrent = read('app-current.html');
 const ordered = [
   'engine-v6.js?v=20260911-conguagli5',
   'unit-identity-fix-v1.js?v=20260911-unit2',
-  'conguaglio-position-fix-v2.js?v=20260911-rates4'
+  'conguaglio-position-fix-v2.js?v=20260911-rates4',
+  'v1-focus-ordinary-conguagli.js?v=20260911-v1focus1',
+  'whatsapp-v6.js?v=20260909h'
 ];
 let last = -1;
 for (const marker of ordered) {
@@ -34,7 +36,7 @@ for (const marker of ordered) {
   last = i;
 }
 if (/qa\//i.test(appCurrent)) fail('QA files must never be loaded by the runtime app');
-else ok('test entrypoint keeps engine -> unit identity -> month fix order and QA stays non-runtime');
+else ok('test entrypoint keeps engine -> unit identity -> month fix -> V1 focus -> WhatsApp order and QA stays non-runtime');
 
 // 2) Conguaglio safety markers.
 mustContain('engine-v6.js', [
@@ -63,7 +65,18 @@ mustNotContain('conguaglio-position-fix-v2.js', [
 ]);
 ok('future-month filtering is protected and ordinary rows cannot fall back to interno-only matching');
 
-// 4) Credits and per-item selection must remain manual.
+// 4) V1 focus: extraordinary/individual expenses cannot enter operational totals or WhatsApp.
+mustContain('v1-focus-ordinary-conguagli.js', [
+  "const allowedItem=x=>x&&((x.type==='ordinary')||(x.type==='cong'))",
+  "p.items=(p.items||[]).filter(allowedItem)",
+  "p.credits=(p.credits||[]).filter(allowedCredit)",
+  "message=function(p){focusPerson(p);return baseMessage(p)}",
+  "calc=function(p){focusPerson(p);return baseCalc(p)}",
+  "V1 operativa:"
+]);
+ok('V1 operational scope excludes extraordinary/individual items before totals and messages');
+
+// 5) Credits and per-item selection must remain manual.
 mustContain('legacy-v28.html', [
   "function setItem(pid,i,v)",
   "function setCredit(pid,i,v)",
@@ -73,7 +86,7 @@ mustContain('legacy-v28.html', [
 ]);
 ok('single-item selection and manual credit compensation markers are present');
 
-// 5) Official Drive pin, pruning, ordering.
+// 6) Official Drive pin, pruning, ordering.
 mustContain('drive-sync-v1.js', [
   "ROOT_FOLDER_ID='1ZE0blT7_qZzxdJL54uGhZfsaFIVUk9up'",
   "function pruneLocalToDrive(rows)",
@@ -81,7 +94,7 @@ mustContain('drive-sync-v1.js', [
 ]);
 ok('official Drive root, prune and order markers are present');
 
-// 6) Contact ownership isolation and WhatsApp fallback.
+// 7) Contact ownership isolation and WhatsApp fallback.
 mustContain('whatsapp-v6.js', [
   "input.value='';",
   "p.phone='';",
@@ -90,7 +103,7 @@ mustContain('whatsapp-v6.js', [
 ]);
 ok('WhatsApp contact ownership isolation markers are present');
 
-// 7) Change-control gate: any protected runtime change relative to the frozen
+// 8) Change-control gate: any protected runtime change relative to the frozen
 // baseline requires explicit authorization plus all regression gates = true.
 let changed = [];
 try {
