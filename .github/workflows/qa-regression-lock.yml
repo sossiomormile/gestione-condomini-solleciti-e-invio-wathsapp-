@@ -20,5 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Test V1 operational focus
+        run: node qa/test-v1-focus.mjs
       - name: Verify protected behavior and change authorization
         run: node qa/verify-protected-behavior.mjs
