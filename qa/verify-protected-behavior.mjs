@@ -8,25 +8,22 @@ const fail = msg => { console.error('\nQA LOCK FAILED: '+msg); process.exitCode 
 const ok = msg => console.log('OK - '+msg);
 const mustContain = (file, needles) => {
   const text = read(file);
-  for (const needle of needles) {
-    if (!text.includes(needle)) fail(`${file} no longer contains protected marker: ${needle}`);
-  }
+  for (const needle of needles) if (!text.includes(needle)) fail(`${file} no longer contains protected marker: ${needle}`);
 };
 const mustNotContain = (file, needles) => {
   const text = read(file);
-  for (const needle of needles) {
-    if (text.includes(needle)) fail(`${file} contains forbidden regression marker: ${needle}`);
-  }
+  for (const needle of needles) if (text.includes(needle)) fail(`${file} contains forbidden regression marker: ${needle}`);
 };
 
-// 1) Entrypoint and patch order: the test app must keep the already-tested chain.
 const appCurrent = read('app-current.html');
 const ordered = [
   'engine-v6.js?v=20260911-conguagli5',
   'unit-identity-fix-v1.js?v=20260911-unit2',
   'conguaglio-position-fix-v2.js?v=20260911-rates4',
+  'v1-source-order.js?v=20260911-order1',
   'v1-focus-ordinary-conguagli.js?v=20260911-v1focus1',
-  'whatsapp-v6.js?v=20260909h'
+  'whatsapp-v6.js?v=20260909h',
+  'drive-sync-v2.js?v=20260911-fullrefresh1'
 ];
 let last = -1;
 for (const marker of ordered) {
@@ -35,10 +32,10 @@ for (const marker of ordered) {
   if (i <= last) fail(`app-current.html changed protected script order around ${marker}`);
   last = i;
 }
+if (appCurrent.includes('drive-sync-v1.js')) fail('test entrypoint still loads obsolete drive-sync-v1.js');
 if (/qa\//i.test(appCurrent)) fail('QA files must never be loaded by the runtime app');
-else ok('test entrypoint keeps engine -> unit identity -> month fix -> V1 focus -> WhatsApp order and QA stays non-runtime');
+else ok('entrypoint keeps protected accounting chain, then source order, V1 focus, WhatsApp and Drive V2');
 
-// 2) Conguaglio safety markers.
 mustContain('engine-v6.js', [
   "const unresolved=[];",
   "if(!match.name){unresolved.push",
@@ -52,7 +49,6 @@ mustContain('unit-identity-fix-v1.js', [
 ]);
 ok('conguaglio resolver and unit-identity guard markers are present');
 
-// 3) Ordinary/future-month protection markers. Real-file regression remains mandatory.
 mustContain('conguaglio-position-fix-v2.js', [
   "if(isFutureMonth(x.year,x.mese))continue;",
   "const idx=records.findIndex((r,i)=>!used.has(i)&&canon(r.name)===canon(p.name))",
@@ -65,7 +61,16 @@ mustNotContain('conguaglio-position-fix-v2.js', [
 ]);
 ok('future-month filtering is protected and ordinary rows cannot fall back to interno-only matching');
 
-// 4) V1 focus: extraordinary/individual expenses cannot enter operational totals or WhatsApp.
+mustContain('v1-source-order.js', [
+  "const SUMMARY_LABELS=new Set([",
+  "if(isSummaryName(p?.name))return;",
+  "current=reorderPeople(current,wb)",
+  "x.p._sourceOrder=x.order",
+  "window.condoV1SourceOrder={sourceUnits,reorderPeople,isSummaryName,lastAudit:null}"
+]);
+mustNotContain('v1-source-order.js', ["p.items=", "p.credits="]);
+ok('source-order patch only reorders/filter summary people and does not rewrite accounting items or credits');
+
 mustContain('v1-focus-ordinary-conguagli.js', [
   "const allowedItem=x=>x&&((x.type==='ordinary')||(x.type==='cong'))",
   "p.items=(p.items||[]).filter(allowedItem)",
@@ -76,7 +81,6 @@ mustContain('v1-focus-ordinary-conguagli.js', [
 ]);
 ok('V1 operational scope excludes extraordinary/individual items before totals and messages');
 
-// 5) Credits and per-item selection must remain manual.
 mustContain('legacy-v28.html', [
   "function setItem(pid,i,v)",
   "function setCredit(pid,i,v)",
@@ -86,15 +90,18 @@ mustContain('legacy-v28.html', [
 ]);
 ok('single-item selection and manual credit compensation markers are present');
 
-// 6) Official Drive pin, pruning, ordering.
-mustContain('drive-sync-v1.js', [
+mustContain('drive-sync-v2.js', [
   "ROOT_FOLDER_ID='1ZE0blT7_qZzxdJL54uGhZfsaFIVUk9up'",
-  "function pruneLocalToDrive(rows)",
+  "function beginFullRefreshTransaction()",
+  "localStorage.setItem(ARCHIVE_KEY,JSON.stringify({condomini:{}}))",
+  "function rollbackFullRefreshTransaction()",
+  "function recoverInterruptedTransaction()",
+  "if(result.updated!==rows.length)",
   ".sort((a,b)=>a.name.localeCompare(b.name,'it'))"
 ]);
-ok('official Drive root, prune and order markers are present');
+mustNotContain('drive-sync-v2.js', ["state[key]===currentSig"]);
+ok('Drive V2 uses official root, reloads every balance and protects full refresh with rollback');
 
-// 7) Contact ownership isolation and WhatsApp fallback.
 mustContain('whatsapp-v6.js', [
   "input.value='';",
   "p.phone='';",
@@ -103,8 +110,6 @@ mustContain('whatsapp-v6.js', [
 ]);
 ok('WhatsApp contact ownership isolation markers are present');
 
-// 8) Change-control gate: any protected runtime change relative to the frozen
-// baseline requires explicit authorization plus all regression gates = true.
 let changed = [];
 try {
   const out = execFileSync('git', ['diff','--name-only',`${baseline.baseline_commit}..HEAD`,'--',...baseline.protected_runtime_files], {encoding:'utf8'});
@@ -112,17 +117,12 @@ try {
 } catch (e) {
   fail('Unable to calculate protected runtime diff from baseline commit: '+e.message);
 }
-
-if (!changed.length) {
-  ok('no protected runtime file changed from frozen baseline');
-} else {
+if (!changed.length) ok('no protected runtime file changed from frozen baseline');
+else {
   console.log('Protected runtime changes detected:', changed.join(', '));
   const approved = [...(auth.approved_changed_runtime_files||[])].sort();
-  if (JSON.stringify(changed)!==JSON.stringify(approved)) {
-    fail('protected runtime changes are not exactly listed in qa/CHANGE_AUTHORIZATION.json');
-  }
-  const required = Object.entries(auth.regression_gates||{});
-  const failedGates = required.filter(([,v])=>v!==true).map(([k])=>k);
+  if (JSON.stringify(changed)!==JSON.stringify(approved)) fail('protected runtime changes are not exactly listed in qa/CHANGE_AUTHORIZATION.json');
+  const failedGates = Object.entries(auth.regression_gates||{}).filter(([,v])=>v!==true).map(([k])=>k);
   if (failedGates.length) fail('runtime change authorization incomplete; gates still false: '+failedGates.join(', '));
   else ok('protected runtime changes have explicit complete regression authorization');
 }
