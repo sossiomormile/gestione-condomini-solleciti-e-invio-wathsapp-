@@ -1,6 +1,6 @@
 {
-  "authorization_version": 5,
-  "reason": "User approved automatic post-AGGIORNA validation. Added a separate V1 self-check module and integrated it into Drive full refresh. No accounting engine formula or conguaglio resolver is changed. The refresh now blocks commit and rolls back when the self-check fails; it also verifies that archive records are newly rebuilt and that WhatsApp contacts/history/config fingerprints remain unchanged.",
+  "authorization_version": 6,
+  "reason": "User requested a safe fix for source-order and full-refresh validation without regressing passed accounting behavior. The live phone self-check exposed a duplicate-unit ambiguity in Condominio Di.Be: two rows have the exact same nominative, scala, piano and interno but different SUB and ordinary rates. The fix only propagates the exact Incassi source row/SUB from the already-established ordinary-month record and makes source ordering prefer that explicit row. No conguaglio resolver, conguaglio amount, ordinary amount formula, Drive transaction semantics or WhatsApp send logic is changed.",
   "approved_changed_runtime_files": [
     "app-current.html",
     "conguaglio-position-fix-v2.js",
@@ -16,6 +16,8 @@
     "conguagli_da_verificare_zero": true,
     "source_order_matches_incassi_11_of_11": true,
     "source_order_unmatched_zero": true,
+    "duplicate_units_prefer_exact_incassi_source_row": true,
+    "duplicate_unit_sub_propagated_without_rewriting_amounts": true,
     "summary_rows_not_people": true,
     "credits_manual_only": true,
     "single_item_selection_ok": true,
@@ -44,9 +46,11 @@
       "Parco Pantani row 68"
     ],
     "source_order_audit_file": "qa/SOURCE_ORDER_REAL_AUDIT_20260911.json",
+    "duplicate_source_row_audit_file": "qa/DUPLICATE_SOURCE_ROW_AUDIT_20260911.json",
+    "conguaglio_cents_audit_file": "qa/CONGUAGLIO_CENTS_AUDIT_20260911.json",
     "conguaglio_engine_files_changed": false,
     "unit_identity_engine_changed": false,
-    "ordinary_month_engine_changed_in_this_change": false,
+    "ordinary_month_formula_changed_in_duplicate_fix": false,
     "whatsapp_contact_file_changed": false,
     "drive_v2_transaction_test": "qa/test-drive-full-refresh.mjs",
     "source_order_unit_test": "qa/test-source-order.mjs",
