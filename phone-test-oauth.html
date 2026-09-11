@@ -1,14 +1,14 @@
 <!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#7c3aed"><title>Condominio APP · TEST Profondo V3</title><style>body{margin:0;font-family:system-ui;background:#f3f5f8;color:#17324d}#boot{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}#boot b{display:block;color:#7c3aed;margin-bottom:8px}</style></head><body><div id="boot"><div><b>VERSIONE TEST PROFONDO V3</b>Apertura Gestione Condomini…</div></div><script>
 (async()=>{
  const boot=document.getElementById('boot');
- const BASE='https://raw.githack.com/sossiomormile/gestione-condomini-solleciti-e-invio-wathsapp-/92aaffbdab4b0794ae4ebbacb6f7160f2bf11fc7/';
+ const BASE='https://raw.githack.com/sossiomormile/gestione-condomini-solleciti-e-invio-wathsapp-/85af933d67b577efe14785ad37f841b70a82e22f/';
  try{
-  const r=await fetch(BASE+'legacy-v28.html?phoneTest=deepv3',{cache:'no-store'});
+  const r=await fetch(BASE+'legacy-v28.html?phoneTest=deepv3b',{cache:'no-store'});
   if(!r.ok)throw new Error('legacy-v28.html '+r.status);
   let t=await r.text();
   const banner='<div id="testVersionBanner" style="position:sticky;top:0;z-index:9999;background:#7c3aed;color:white;text-align:center;padding:7px 10px;font:700 13px system-ui">🧪 VERSIONE TEST PROFONDO V3 · origine GitHub Pages</div><div id="testLoadState" style="background:#fff3cd;color:#664d03;text-align:center;padding:6px 10px;font:700 12px system-ui">⏳ Preparazione moduli TEST…</div>';
   t=t.replace('<body>','<body>'+banner);
-  const scripts=['priority-fix.js?v=20260909h','app-v5.js?v=20260909h','engine-v6.js?v=20260911-conguagli5','unit-identity-fix-v1.js?v=20260911-unit2','conguaglio-position-fix-v2.js?v=20260911-rates4','v1-source-order.js?v=20260911-order1','v1-focus-ordinary-conguagli.js?v=20260911-v1focus1','folder-name-fix-v1.js?v=20260911-folder2','whatsapp-v6.js?v=20260909h','unit-contact-identity-v1.js?v=20260911-contact1','v1-self-check.js?v=20260911-selfcheck1','v1-self-check-cents-v2.js?v=20260911-cents1','v1-deep-check-v2.js?v=20260911-deep1','drive-sync-v3.js?v=20260911-fullrefresh3'];
+  const scripts=['priority-fix.js?v=20260909h','app-v5.js?v=20260909h','engine-v6.js?v=20260911-conguagli5','unit-identity-fix-v1.js?v=20260911-unit2','conguaglio-position-fix-v2.js?v=20260911-rates4','v1-source-order.js?v=20260911-order1','v1-focus-ordinary-conguagli.js?v=20260911-v1focus1','folder-name-fix-v1.js?v=20260911-folder2','whatsapp-v6.js?v=20260909h','unit-contact-identity-v1.js?v=20260911-contact2','v1-self-check.js?v=20260911-selfcheck1','v1-self-check-cents-v2.js?v=20260911-cents1','v1-deep-check-v2.js?v=20260911-deep1','drive-sync-v3.js?v=20260911-fullrefresh3'];
   const loader='<script>(function(){\n'+
    'const BASE='+JSON.stringify(BASE)+';\n'+
    'const scripts='+JSON.stringify(scripts)+';\n'+
