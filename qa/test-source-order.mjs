@@ -35,4 +35,22 @@ for(const p of context.current){
   if(now!==snapshots.get(p.name))throw new Error('Contenuto contabile alterato per '+p.name);
 }
 if((context.window.condoV1SourceOrder.lastAudit?.unmatched||[]).length)throw new Error('Unmatched inattesi: '+context.window.condoV1SourceOrder.lastAudit.unmatched.join(', '));
+
+// Caso reale emerso in Di.Be: due unità con stesso nominativo, stessa scala/interno/piano,
+// ma SUB e rata differenti. La riga sorgente Incassi deve prevalere sul pareggio strutturale.
+const dupWb={SheetNames:['Incassi 2025-26'],Sheets:{'Incassi 2025-26':{rows:[
+  ['CONDOMINO','SUB','SCALA','P','INT.','RATA'],
+  ['BELARDO M. / DI GUIDA E.','4','NEG','P.T','0',17.30],
+  ['BELARDO M. / DI GUIDA E.','5','NEG','P.T','0',17.64]
+]}}};
+const dupPeople=[
+  {name:'BELARDO M. / DI GUIDA E.',scala:'NEG',interno:'0',piano:'P.T',_sourceRow:2,items:[{type:'ordinary',label:'Maggio',amount:17.64,selected:true}],credits:[]},
+  {name:'BELARDO M. / DI GUIDA E.',scala:'NEG',interno:'0',piano:'P.T',_sourceRow:1,items:[{type:'ordinary',label:'Maggio',amount:17.30,selected:true}],credits:[]}
+];
+const dupOrdered=context.window.condoV1SourceOrder.reorderPeople(structuredClone(dupPeople),dupWb);
+const dupAmounts=dupOrdered.map(p=>p.items[0]?.amount);
+if(JSON.stringify(dupAmounts)!==JSON.stringify([17.30,17.64]))throw new Error('Unità omonime invertite: '+JSON.stringify(dupAmounts));
+if(JSON.stringify(dupOrdered.map(p=>p._sourceRow))!==JSON.stringify([1,2]))throw new Error('Righe sorgente omonime non rispettate');
+if(JSON.stringify(dupOrdered.map(p=>p.sub))!==JSON.stringify(['4','5']))throw new Error('SUB delle unità omonime non propagato correttamente');
+
 console.log('SOURCE ORDER TEST PASSED');
