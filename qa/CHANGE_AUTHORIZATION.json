@@ -1,11 +1,12 @@
 {
-  "authorization_version": 4,
-  "reason": "User authorized fixes for point 1 (display people in the exact Incassi source sequence) and point 4 (AGGIORNA must rebuild accounting data from Drive from a clean archive). The accounting engines for ordinary rates and the 285 conguagli are not changed. Source order is a post-processing step only; Drive V2 clears only archive/sync data inside a rollback transaction and preserves contacts/history.",
+  "authorization_version": 5,
+  "reason": "User approved automatic post-AGGIORNA validation. Added a separate V1 self-check module and integrated it into Drive full refresh. No accounting engine formula or conguaglio resolver is changed. The refresh now blocks commit and rolls back when the self-check fails; it also verifies that archive records are newly rebuilt and that WhatsApp contacts/history/config fingerprints remain unchanged.",
   "approved_changed_runtime_files": [
     "app-current.html",
     "conguaglio-position-fix-v2.js",
     "drive-sync-v2.js",
     "v1-focus-ordinary-conguagli.js",
+    "v1-self-check.js",
     "v1-source-order.js"
   ],
   "regression_gates": {
@@ -23,6 +24,12 @@
     "drive_full_refresh_no_signature_skip": true,
     "drive_full_refresh_rollback_ok": true,
     "drive_full_refresh_preserves_contacts_history": true,
+    "runtime_selfcheck_loaded_before_drive_refresh": true,
+    "runtime_selfcheck_compares_order_and_ordinary": true,
+    "runtime_selfcheck_validates_conguagli": true,
+    "runtime_selfcheck_blocks_commit_on_failure": true,
+    "runtime_selfcheck_checks_fresh_archive": true,
+    "runtime_selfcheck_checks_contacts_history_config_unchanged": true,
     "whatsapp_contacts_not_transferred_between_owners": true,
     "send_functions_smoke_tested": true
   },
@@ -43,6 +50,8 @@
     "whatsapp_contact_file_changed": false,
     "drive_v2_transaction_test": "qa/test-drive-full-refresh.mjs",
     "source_order_unit_test": "qa/test-source-order.mjs",
-    "v1_filter_test": "qa/test-v1-focus.mjs"
+    "v1_filter_test": "qa/test-v1-focus.mjs",
+    "runtime_selfcheck_test": "qa/test-v1-self-check.mjs",
+    "phone_run_required_for_live_drive_result": true
   }
 }
