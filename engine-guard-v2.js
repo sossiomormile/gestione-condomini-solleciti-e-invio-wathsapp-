@@ -24,31 +24,45 @@ const V=x=>{if(typeof x==='number'&&Number.isFinite(x))return x;let s=String(x??
 const R=x=>Math.round((Number(x)||0)*100)/100;
 function rowsOf(wb,sn){return XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null,raw:true})}
 function isCongSheet(sn){const s=N(sn);return /CONG/.test(s)||(/REC/.test(s)&&/INCASS/.test(s)&&/PRECED/.test(s))||(/PRECED/.test(s)&&/INCASS/.test(s));}
-function findHeader(rows){for(let i=0;i<rows.length;i++){const h=(rows[i]||[]).map(N);if((h.includes('CONDOMINO')||h.includes('NOMINATIVO'))&&h.some(x=>x.includes('DA INCASSARE')||x==='SALDO'))return i}return-1}
-function uniquePersonByName(people,name){const a=people.filter(p=>N(p.name)===N(name));return a.length===1?a[0]:null}
-function uniquePersonByUnit(people,piano,interno,scala){const pk=N(piano),ik=N(interno),sk=N(scala);if(!ik)return null;let a=people.filter(p=>N(p.piano)===pk&&N(p.interno)===ik);if(sk){const b=a.filter(p=>N(p.scala)===sk);if(b.length===1)return b[0]}
-return a.length===1?a[0]:null}
+function findHeaders(rows){const out=[];for(let i=0;i<rows.length;i++){const h=(rows[i]||[]).map(N);if((h.includes('CONDOMINO')||h.includes('NOMINATIVO'))&&h.some(x=>x.includes('DA INCASSARE')||x==='SALDO'))out.push(i)}return out}
+function col(H,...names){for(const n of names){const i=H.indexOf(N(n));if(i>=0)return i}return-1}
+function uniqueIndexByName(target,name){const k=N(name);if(!k)return-1;const a=[];for(let i=0;i<target.length;i++)if(N(target[i]?.name)===k)a.push(i);return a.length===1?a[0]:-1}
+function uniqueIndexByUnit(target,e){const ik=N(e?.interno),pk=N(e?.piano),sk=N(e?.scala);if(!ik)return-1;const a=[];for(let i=0;i<target.length;i++){const p=target[i];if(N(p?.interno)!==ik)continue;if(pk&&N(p?.piano)!==pk)continue;if(sk&&N(p?.scala)&&N(p?.scala)!==sk)continue;a.push(i)}return a.length===1?a[0]:-1}
+function evidenceFor(e,target){return{ni:uniqueIndexByName(target,e.name),ui:uniqueIndexByUnit(target,e)}}
+function isAnchor(ev,pos){return ev.ni===pos}
+function structuralMap(entries,target){const ev=entries.map(e=>evidenceFor(e,target));let contradiction=false;for(let i=0;i<ev.length;i++){const x=ev[i];if(x.ui>=0&&x.ui!==i)contradiction=true;else if(x.ui<0&&x.ni>=0&&x.ni!==i)contradiction=true;if(x.ui>=0&&x.ni>=0&&x.ui!==x.ni&&x.ui!==i)contradiction=true}return{ev,contradiction,countEqual:entries.length===target.length,anchors:ev.map((x,i)=>isAnchor(x,i)?i:-1).filter(i=>i>=0)}}
+function neighborCheck(i,map,unitSameRow){if(!map||!map.countEqual||map.contradiction)return{ok:false,method:''};const before=map.anchors.filter(x=>x<i),after=map.anchors.filter(x=>x>i);if(before.length&&after.length)return{ok:true,method:'riga confermata da nominativi esatti prima e dopo'};if(unitSameRow&&before.length>=2){const b=before.slice(-2);if(i-b[0]<=4)return{ok:true,method:'piano/interno + due nominativi esatti precedenti vicini'}}if(unitSameRow&&after.length>=2){const a=after.slice(0,2);if(a[1]-i<=4)return{ok:true,method:'piano/interno + due nominativi esatti successivi vicini'}}return{ok:false,method:''}}
+function resolveEntry(e,i,target,map){if(!target.length)return{idx:-1,method:'',conflict:false};const ev=evidenceFor(e,target);if(ev.ni>=0)return{idx:ev.ni,method:'nome esatto da Incassi',conflict:false};if(ev.ui>=0&&ev.ui!==i)return{idx:-1,method:'',conflict:true};const chk=neighborCheck(i,map,ev.ui===i);if(chk.ok)return{idx:i,method:chk.method,conflict:false};return{idx:-1,method:'',conflict:false}}
 function supplementConguagli(wb,r){
+  const allPeople=r.people||[],maxBlock=Math.max(0,...allPeople.map(p=>Number(p?._v7?.block)||0));
   for(const sn of wb.SheetNames||[]){
     if(!isCongSheet(sn))continue;
-    const rows=rowsOf(wb,sn),hi=findHeader(rows);if(hi<0)continue;
-    const H=(rows[hi]||[]).map(N),nc=Math.max(H.indexOf('CONDOMINO'),H.indexOf('NOMINATIVO')),pc=H.indexOf('P'),ic=Math.max(H.indexOf('INT'),H.indexOf('INT.'),H.indexOf('INTERNO')),sc=Math.max(H.indexOf('SCALA'),H.indexOf('SC')),bc=H.findIndex(x=>x.includes('DA INCASSARE')||x==='SALDO');
-    if(nc<0||bc<0)continue;
-    const entries=[];
-    for(let j=hi+1;j<rows.length;j++){
-      const row=rows[j]||[],name=String(row[nc]??'').trim();
-      if(!name||/^TOTALE/i.test(name))continue;
-      const bal=R(V(row[bc]));
-      entries.push({row,name,bal,piano:pc>=0?row[pc]:'',interno:ic>=0?row[ic]:'',scala:sc>=0?row[sc]:''});
-    }
-    for(let i=0;i<entries.length;i++){
-      const e=entries[i];if(Math.abs(e.bal)<=.01)continue;
-      let p=uniquePersonByName(r.people||[],e.name)||uniquePersonByUnit(r.people||[],e.piano,e.interno,e.scala);
-      if(!p&&entries.length===(r.people||[]).length)p=(r.people||[])[i]||null;
-      if(!p)continue;
-      const hasDebit=(p.items||[]).some(x=>x.type==='cong'),hasCredit=(p.credits||[]).some(x=>/CONGUAGLIO|DARE[- /]?AVERE/i.test(String(x.label||'')));
-      if(e.bal>0&&!hasDebit)(p.items||(p.items=[])).push({type:'cong',label:'Conguaglio a debito',amount:e.bal,selected:false});
-      if(e.bal<0&&!hasCredit)(p.credits||(p.credits=[])).push({label:'Conguaglio / dare-avere a credito',amount:R(-e.bal),selected:false});
+    const rows=rowsOf(wb,sn),hs=findHeaders(rows);if(!hs.length)continue;
+    for(let z=0;z<hs.length;z++){
+      const hi=hs[z],end=z+1<hs.length?hs[z+1]:rows.length;
+      const H=(rows[hi]||[]).map(N),nc=Math.max(H.indexOf('CONDOMINO'),H.indexOf('NOMINATIVO')),pc=col(H,'P','PIANO'),ic=col(H,'INT','INT.','INTERNO'),sc=col(H,'SCALA','SC'),bc=H.findIndex(x=>x.includes('DA INCASSARE')||x==='SALDO');
+      if(nc<0||bc<0)continue;
+      const entries=[];
+      for(let j=hi+1;j<end;j++){
+        const row=rows[j]||[],name=String(row[nc]??'').trim();
+        if(!name||/^TOTALE/i.test(name))continue;
+        const bal=R(V(row[bc]));
+        entries.push({row,name,bal,piano:pc>=0?row[pc]:'',interno:ic>=0?row[ic]:'',scala:sc>=0?row[sc]:''});
+      }
+      const blockAware=hs.length===maxBlock&&maxBlock>1;
+      const target=blockAware?allPeople.filter(p=>(Number(p?._v7?.block)||0)===z+1):(hs.length===1&&maxBlock===1?allPeople:[]);
+      const map=target.length?structuralMap(entries,target):null,used=new Set();
+      for(let i=0;i<entries.length;i++){
+        const e=entries[i];if(Math.abs(e.bal)<=.01)continue;
+        let p=null;
+        if(target.length){const rr=resolveEntry(e,i,target,map);if(rr.conflict)continue;if(rr.idx>=0)p=target[rr.idx]}
+        else{const ni=uniqueIndexByName(allPeople,e.name);if(ni>=0)p=allPeople[ni]}
+        if(!p||used.has(p))continue;
+        used.add(p);
+        const hasDebit=(p.items||[]).some(x=>x.type==='cong'),hasCredit=(p.credits||[]).some(x=>/CONGUAGLIO|DARE[- /]?AVERE/i.test(String(x.label||'')));
+        if(e.bal>0&&!hasDebit)(p.items||(p.items=[])).push({type:'cong',label:'Conguaglio a debito',amount:e.bal,selected:false});
+        if(e.bal<0&&!hasCredit)(p.credits||(p.credits=[])).push({label:'Conguaglio / dare-avere a credito',amount:R(-e.bal),selected:false});
+      }
     }
   }
   return r;
@@ -71,7 +85,7 @@ async function parseFileGuarded(file){
     if(!wb.Sheets.Frotespizio){const front=(wb.SheetNames||[]).find(s=>/FRO?NT?ESPIZIO/i.test(s));if(front)wb.Sheets.Frotespizio=wb.Sheets[front];else wb.Sheets.Frotespizio=XLSX.utils.aoa_to_sheet([[r.title]]);if(!wb.SheetNames.includes('Frotespizio'))wb.SheetNames.push('Frotespizio')}
     render(file.name,wb);building.textContent=r.title;
     source.textContent='Motore V7 · solo rate ordinarie e conguagli · rate future escluse';
-    const v=document.querySelector('#results .card .muted');if(v)v.textContent='Fase attuale: rate ordinarie da Incassi + conguagli. Spese straordinarie e spese individuali escluse. Conguagli abbinati per nome, piano/interno o riga quando strutturalmente possibile.';
+    const v=document.querySelector('#results .card .muted');if(v)v.textContent='Fase attuale: rate ordinarie da Incassi + conguagli. Incassi resta l’anagrafica ufficiale; i nominativi diversi vengono associati solo con struttura coerente e conferme nominali vicine. In dubbio nessuna attribuzione automatica.';
   }catch(e){console.error(e);alert('Controllo bilancio: '+e.message);throw e}
   finally{loader.classList.add('hidden')}
 }
