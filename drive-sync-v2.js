@@ -8,6 +8,7 @@ const TOKEN_KEY='condo_google_token_v1';
 const SYNC_KEY='condo_drive_sync_state_v7';
 const ARCHIVE_KEY='condo_archive_v5';
 const TX_KEY='condo_drive_full_refresh_tx_v2';
+const CONTACT_KEY='condo_contacts_v5';
 let tokenClient=null,accessToken='',tokenExpiresAt=0;
 const SOURCE_RULES={
  'CLANIO 2':'Bilancio 2025-2026.xlsx','CORSO DURANTE 207':'2026/2026.xlsx','D FERRIERO CESA':'2026-2027/Consuntivo 2026 - Preventivo 2027.xlsx','DEL SOLE':'2025-2026.xlsx','DEMACOOP':'2026-2027/Consuntivo 2026 - Preventivo 2027.xlsx','DI LORENZO':'2026/2026.xlsx','DI BE':'2025-2026/Consuntivo 2025 - Preventivo 2026 - MODIFICA.xlsx','F LLI CARUSO C SO VITT EMENUELE':'2026/2026-2027.xlsx','F LLI CARUSO VIA LUPOLI':'2026/2026 - da gen 26.xlsx','GLOBO':'2025-2026/2025-2026.xlsx','LUNA':'2026-2027/Bilancio 2026-2027.xlsx','MIMOSA VIA BUCCINI':'2026-2027/2026-2027.xlsx','NEW GATE':'2026/Bilancio 2026-2027.xlsx','PARCO ACUTIS':'2026-2027/2026-2027.xlsx','PARCO ARCOBALENO':'2026-27/Bilancio 2026-27.xlsx','PARCO GARDENIA':'2026-2027/2026-2027.xlsx','PARCO IRIS':'2025/Consuntivo 2025 - Preventivo 2026.xlsx','PARCO OLITEAMA':'2026/Maggio 26 - Aprile 27.xlsx','PARCO PANTANI':'2026/Consuntivo 2026 - Preventivo 2027.xlsx','PARCO SAN NAZARIO':'2026-2027/Consuntivo 2026-2027.xlsx','PIO IX':'2026/2026-2027.xlsx','RAFFAELLO 2':'2026 - 2027/2026.xlsx','VIA STANZIONE 132':'2026-27/2026-27.xlsx','LA PERLA CESA':'2026/Consuntivo 2026 - 2027.xlsx','PARCO DEL SOLE':'2026/Bilancio 2026.xlsx','PARCO FIORITO':'2026-27/Consuntivo 2026-2027.xlsx','PARCO KAROL':'2025/Consuntivo 2025 - Preventivo 2026.xlsx'
@@ -18,9 +19,11 @@ function statusMsg(msg,bad=false){const el=document.getElementById('status');if(
 function safeRenderArchive(){try{if(typeof renderArchiveHome==='function')renderArchiveHome()}catch(e){}}
 function snap(key){const value=localStorage.getItem(key);return{exists:value!==null,value}}
 function restoreSnap(key,s){if(s?.exists)localStorage.setItem(key,s.value);else localStorage.removeItem(key)}
+function hashText(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16)}
+function protectedFingerprint(){const rows=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';if(k===CONTACT_KEY||k.startsWith('condo_hist_v28_')||k.startsWith('condo_cfg_v28_'))rows.push(k+'='+String(localStorage.getItem(k)||''))}rows.sort();return{hash:hashText(rows.join('\u0000')),keys:rows.length}}
 function beginFullRefreshTransaction(){
  if(localStorage.getItem(TX_KEY))rollbackFullRefreshTransaction();
- const tx={startedAt:new Date().toISOString(),archive:snap(ARCHIVE_KEY),sync:snap(SYNC_KEY)};
+ const tx={startedAt:new Date().toISOString(),archive:snap(ARCHIVE_KEY),sync:snap(SYNC_KEY),protectedFingerprint:protectedFingerprint()};
  localStorage.setItem(TX_KEY,JSON.stringify(tx));
  localStorage.setItem(ARCHIVE_KEY,JSON.stringify({condomini:{}}));
  localStorage.removeItem(SYNC_KEY);
@@ -34,6 +37,8 @@ function rollbackFullRefreshTransaction(){
 }
 function commitFullRefreshTransaction(){localStorage.removeItem(TX_KEY);safeRenderArchive()}
 function recoverInterruptedTransaction(){if(!localStorage.getItem(TX_KEY))return false;const ok=rollbackFullRefreshTransaction();if(ok)statusMsg('Ripristinati i dati precedenti dopo un aggiornamento interrotto.');return ok}
+function verifyProtectedData(tx){const now=protectedFingerprint(),before=tx?.protectedFingerprint||{};return{ok:now.hash===before.hash&&now.keys===before.keys,before,after:now}}
+function verifyFreshArchive(startedAt){try{const cut=Date.parse(startedAt||''),a=JSON.parse(localStorage.getItem(ARCHIVE_KEY)||'{"condomini":{}}'),entries=Object.entries(a?.condomini||{}),stale=entries.filter(([,r])=>!r?.updatedAt||!Number.isFinite(Date.parse(r.updatedAt))||Date.parse(r.updatedAt)<cut).map(([k])=>k);return{ok:stale.length===0,entries:entries.length,stale}}catch(e){return{ok:false,entries:0,stale:['Archivio non leggibile: '+e.message]}}}
 function restoreToken(){try{const d=JSON.parse(sessionStorage.getItem(TOKEN_KEY)||'null');if(d&&d.token&&Number(d.expiresAt)>Date.now()+60000){accessToken=d.token;tokenExpiresAt=Number(d.expiresAt);return true}}catch(e){}return false}
 function rememberToken(r){accessToken=r.access_token||'';tokenExpiresAt=Date.now()+Math.max(60,Number(r.expires_in)||3600)*1000;sessionStorage.setItem(TOKEN_KEY,JSON.stringify({token:accessToken,expiresAt:tokenExpiresAt}))}
 function clearToken(){accessToken='';tokenExpiresAt=0;sessionStorage.removeItem(TOKEN_KEY)}
@@ -55,13 +60,14 @@ function chooseBalance(candidates,folderName){
 async function scanCondomini(root){statusMsg('Google Drive collegato · controllo completo dei condomini…');const children=await driveList(`'${root.id}' in parents and trashed=false`),folders=children.filter(f=>f.mimeType===FOLDER_MIME&&!EXCLUDED_CONDOS.has(norm(f.name))).sort((a,b)=>a.name.localeCompare(b.name,'it')),rows=new Array(folders.length);let next=0,done=0;async function worker(){while(true){const i=next++;if(i>=folders.length)return;const folder=folders[i];try{rows[i]={folder,...chooseBalance(await collectExcel(folder,5),folder.name)}}catch(e){rows[i]={folder,state:'error',error:e}}done++;statusMsg('Controllo bilanci '+done+'/'+folders.length+'…')}}await Promise.all(Array.from({length:Math.min(4,folders.length)},worker));return rows}
 async function downloadExcel(meta){const r=await fetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(meta.id)+'?alt=media',{headers:{Authorization:'Bearer '+accessToken}});if(r.status===401){clearToken();throw new Error('SESSION_EXPIRED')}if(!r.ok)throw new Error('Non riesco a scaricare '+meta.name);const b=await r.blob();return new File([b],meta.name,{type:b.type||'application/octet-stream',lastModified:meta.modifiedTime?new Date(meta.modifiedTime).getTime():Date.now()})}
 function sourcePath(r){return ((r.balancePath||[]).length?(r.balancePath.join('/')+'/'):'')+(r.balance?.name||'')}
-function sig(r){return[r.balance?.id||'',r.balance?.modifiedTime||'',r.balance?.name||'',r.rule||'AUTO','ENGINE_V7_ORDINARY_CONG_ROOTPIN1_FULLREFRESH2'].join('|')}
+function sig(r){return[r.balance?.id||'',r.balance?.modifiedTime||'',r.balance?.name||'',r.rule||'AUTO','ENGINE_V7_ORDINARY_CONG_ROOTPIN1_FULLREFRESH2_SELFCHECK1'].join('|')}
 function ensureArea(){let area=document.getElementById('driveCondoArea');if(area)return area;area=document.createElement('div');area.id='driveCondoArea';const status=document.getElementById('status');status?.parentNode?.insertBefore(area,status.nextSibling);return area}
 function renderRows(rows,updated=0){const area=ensureArea(),ok=rows.filter(r=>r.state==='ok');area.innerHTML='<div>Condomini Drive attivi: '+rows.length+' · ricaricati integralmente: '+updated+'</div><select id="driveCondoSelect"></select><button id="driveOpenCondo">APRI CONDOMINIO</button>';const sel=document.getElementById('driveCondoSelect');ok.forEach((r,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=r.folder.name;sel.appendChild(o)});document.getElementById('driveOpenCondo').onclick=async()=>{const r=ok[Number(sel.value||0)];try{window.condoSetFolderTitle?.(r.folder.name);window.condoSourcePath=sourcePath(r);const f=await downloadExcel(r.balance);await parseFile(f);statusMsg('Aperto: '+r.folder.name+' · '+r.balance.name)}finally{window.condoSourcePath='';window.condoClearFolderTitle?.()}}}
 async function rebuildAll(rows){
+ const checker=window.condoSelfCheckV1;if(!checker?.auditFile||!checker?.finalize)throw new Error('Modulo autocollaudo V1 non disponibile: aggiornamento bloccato.');checker.resetBatch();
  const ok=rows.filter(r=>r.state==='ok'),newState={};let updated=0;
  for(let i=0;i<ok.length;i++){
-   const r=ok[i];statusMsg('Ricarico da zero '+r.folder.name+' · '+r.balance.name+' ('+(i+1)+'/'+ok.length+')…');
+   const r=ok[i];statusMsg('Ricarico e controllo '+r.folder.name+' · '+r.balance.name+' ('+(i+1)+'/'+ok.length+')…');
    window.condoSetFolderTitle?.(r.folder.name);window.condoSourcePath=sourcePath(r);
    try{
      const f=await downloadExcel(r.balance),src=document.getElementById('source');
@@ -70,26 +76,34 @@ async function rebuildAll(rows){
      await parseFile(f);
      const parsedOk=src?String(src.textContent||'').includes(r.balance.name):(typeof current!=='undefined'&&Array.isArray(current));
      if(!parsedOk)throw new Error('Analisi non completata per '+r.folder.name+' · '+r.balance.name);
+     const audit=await checker.auditFile(f,Array.isArray(current)?current:[],r.folder.name,r.balance.name);checker.add(audit);
+     if(!audit.ok)throw new Error('Autocollaudo non superato per '+r.folder.name+': '+audit.errors.slice(0,3).join(' | '));
      newState[r.folder.id||r.folder.name]=sig(r);updated++;
    }finally{window.condoSourcePath='';window.condoClearFolderTitle?.()}
  }
+ const auditSummary=checker.finalize(ok.length);if(!auditSummary.ok)throw new Error('Autocollaudo complessivo non superato: '+auditSummary.errors.slice(0,3).join(' | '));
  localStorage.setItem(SYNC_KEY,JSON.stringify(newState));
- return{updated};
+ return{updated,audit:auditSummary};
 }
 async function doRefresh(){
  const root=await findFolder(),rows=await scanCondomini(root),blocked=rows.filter(r=>r.state!=='ok');
  if(blocked.length)throw new Error('Aggiornamento annullato: '+blocked.length+' condomini non hanno un bilancio valido ('+blocked.map(r=>r.folder?.name||'?').join(', ')+'). I dati precedenti restano invariati.');
- beginFullRefreshTransaction();
+ const tx=beginFullRefreshTransaction();
  try{
    const result=await rebuildAll(rows);
    if(result.updated!==rows.length)throw new Error('Ricostruzione incompleta: '+result.updated+'/'+rows.length);
-   commitFullRefreshTransaction();renderRows(rows,result.updated);
-   statusMsg('Aggiornamento completato · archivio precedente sostituito · '+result.updated+' condomini riletti integralmente da Drive.');
+   const fresh=verifyFreshArchive(tx.startedAt);if(!fresh.ok)throw new Error('Sono rimasti dati di archivio precedenti: '+fresh.stale.join(', '));
+   const protectedCheck=verifyProtectedData(tx);if(!protectedCheck.ok)throw new Error('Contatti WhatsApp, storico o configurazioni sono cambiati durante AGGIORNA: operazione annullata.');
+   result.audit.memory={freshArchive:true,archiveEntries:fresh.entries,protectedDataUnchanged:true};
+   commitFullRefreshTransaction();renderRows(rows,result.updated);window.condoSelfCheckV1?.renderBatchSummary(result.audit);
+   statusMsg('Aggiornamento e autocollaudo completati · '+result.updated+' condomini riletti integralmente da Drive.');
    return result;
- }catch(e){rollbackFullRefreshTransaction();throw e}
+ }catch(e){
+   const failedAudit=window.condoSelfCheckV1?.finalize(rows.length);rollbackFullRefreshTransaction();if(failedAudit)window.condoSelfCheckV1?.renderBatchSummary(failedAudit);throw e;
+ }
 }
 async function refreshDrive(){const btn=document.getElementById('folderBtn');try{if(btn){btn.disabled=true;btn.textContent='AGGIORNAMENTO…'}statusMsg('Collegamento a Google Drive…');await ensureToken();await doRefresh()}catch(e){statusMsg(e.message,true);alert(e.message)}finally{if(btn){btn.disabled=false;btn.textContent='AGGIORNA'}}}
-function setup(){restoreToken();recoverInterruptedTransaction();const old=document.getElementById('folderBtn');if(!old)return;const btn=old.cloneNode(true);old.replaceWith(btn);btn.removeAttribute('onclick');btn.textContent='AGGIORNA';btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();refreshDrive()},{capture:true});const p=btn.closest('.card')?.querySelector('p.muted');if(p)p.innerHTML='Premi <b>AGGIORNA</b>: il gestionale verifica Drive, svuota i soli dati di bilancio in una transazione protetta e rilegge integralmente tutti i condomini. Numeri WhatsApp e storico invii non vengono cancellati.'}
-window.condoDriveSyncV2={beginFullRefreshTransaction,rollbackFullRefreshTransaction,commitFullRefreshTransaction,recoverInterruptedTransaction,doRefresh,rebuildAll,keys:{ARCHIVE_KEY,SYNC_KEY,TX_KEY}};
+function setup(){restoreToken();recoverInterruptedTransaction();const old=document.getElementById('folderBtn');if(!old)return;const btn=old.cloneNode(true);old.replaceWith(btn);btn.removeAttribute('onclick');btn.textContent='AGGIORNA';btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();refreshDrive()},{capture:true});const p=btn.closest('.card')?.querySelector('p.muted');if(p)p.innerHTML='Premi <b>AGGIORNA</b>: il gestionale rilegge integralmente i dati da Drive e prima di confermarli esegue l’autocollaudo di nominativi, sequenza Incassi, rate ordinarie, mesi futuri e conguagli. Se un controllo fallisce, ripristina automaticamente i dati precedenti.'}
+window.condoDriveSyncV2={beginFullRefreshTransaction,rollbackFullRefreshTransaction,commitFullRefreshTransaction,recoverInterruptedTransaction,verifyFreshArchive,verifyProtectedData,doRefresh,rebuildAll,keys:{ARCHIVE_KEY,SYNC_KEY,TX_KEY}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
