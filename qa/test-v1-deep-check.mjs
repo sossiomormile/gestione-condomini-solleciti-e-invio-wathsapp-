@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+const base={auditWorkbook:()=>({ok:true,errors:[]}),auditFile:async()=>({ok:true,errors:[]})};
+const rows=[['CONDOMINO','PIANO','INTERNO','SUB','RATA','GENNAIO','FEBBRAIO'],['ALFA','1','1','10',10,0,10],['BETA','2','2','11',20,20,0]];
+const context={console,window:{condoSelfCheckV1:base,condoSourcePath:'2026/mock.xlsx'},XLSX:{utils:{sheet_to_json:ws=>ws.rows}},Date};context.window.window=context.window;vm.createContext(context);vm.runInContext(fs.readFileSync('v1-deep-check-v2.js','utf8'),context);
+const api=context.window.condoDeepCheckV2;if(!api)throw new Error('API deep check non esposta');
+const wb={SheetNames:['Incassi 2026'],Sheets:{'Incassi 2026':{rows}}};
+const good=[{name:'ALFA',scala:'',interno:'1',piano:'1',sub:'10',_sourceOrder:0,items:[{type:'ordinary',label:'Gennaio',amount:10}]},{name:'BETA',scala:'',interno:'2',piano:'2',sub:'11',_sourceOrder:1,items:[{type:'ordinary',label:'Febbraio',amount:20}]}];
+let r=api.deepAudit(wb,good,'mock.xlsx');if(!r.ok||r.expectedOrdinaryItems!==2||r.actualOrdinaryItems!==2||r.expectedOrdinaryTotal!==30||r.actualOrdinaryTotal!==30)throw new Error('Caso corretto non supera deep check: '+r.errors.join(' | '));
+r=api.deepAudit(wb,[good[0]],'mock.xlsx');if(r.ok||!r.errors.some(e=>/complessive|mancanti/i.test(e)))throw new Error('Unità/rata mancante non rilevata');
+const wrong=structuredClone(good);wrong[0].sub='99';r=api.deepAudit(wb,wrong,'mock.xlsx');if(r.ok||!r.errors.some(e=>/sub app/i.test(e)))throw new Error('SUB errato non rilevato');
+const duplicate=structuredClone(good);duplicate[1]._sourceOrder=0;r=api.deepAudit(wb,duplicate,'mock.xlsx');if(r.ok||!r.errors.some(e=>/duplicata/i.test(e)))throw new Error('Ordine sorgente duplicato non rilevato');
+console.log('V1 DEEP CHECK TEST PASSED');
