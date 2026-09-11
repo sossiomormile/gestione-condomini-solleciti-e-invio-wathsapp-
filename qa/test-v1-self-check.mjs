@@ -13,7 +13,7 @@ must('v1-self-check.js',[
   'if(order<=lastOrder)',
   'function parseCongSource(wb)',
   'function compareConguagli(wb,fileName,people,sourceCong)',
-  "const unresolved=(expectedResult.unresolved||[]).filter",
+  '(expectedResult.unresolved||[]).filter',
   'function finalize(expectedCount)',
   'AUTOCOLLAUDO AGGIORNAMENTO SUPERATO',
   'window.condoSelfCheckV1={auditWorkbook,auditFile,resetBatch,add,finalize,renderBatchSummary'
