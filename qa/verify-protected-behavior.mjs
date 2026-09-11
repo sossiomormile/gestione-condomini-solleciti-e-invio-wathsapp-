@@ -23,7 +23,8 @@ const ordered = [
   'v1-source-order.js?v=20260911-order1',
   'v1-focus-ordinary-conguagli.js?v=20260911-v1focus1',
   'whatsapp-v6.js?v=20260909h',
-  'drive-sync-v2.js?v=20260911-fullrefresh1'
+  'v1-self-check.js?v=20260911-selfcheck1',
+  'drive-sync-v2.js?v=20260911-fullrefresh2'
 ];
 let last = -1;
 for (const marker of ordered) {
@@ -34,7 +35,7 @@ for (const marker of ordered) {
 }
 if (appCurrent.includes('drive-sync-v1.js')) fail('test entrypoint still loads obsolete drive-sync-v1.js');
 if (/qa\//i.test(appCurrent)) fail('QA files must never be loaded by the runtime app');
-else ok('entrypoint keeps protected accounting chain, then source order, V1 focus, WhatsApp and Drive V2');
+else ok('entrypoint keeps protected accounting chain, source order, V1 focus, WhatsApp, self-check and Drive V2');
 
 mustContain('engine-v6.js', [
   "const unresolved=[];",
@@ -81,6 +82,16 @@ mustContain('v1-focus-ordinary-conguagli.js', [
 ]);
 ok('V1 operational scope excludes extraordinary/individual items before totals and messages');
 
+mustContain('v1-self-check.js', [
+  "function compareOrdinaryAndOrder(people,source)",
+  "function parseCongSource(wb)",
+  "function compareConguagli(wb,fileName,people,sourceCong)",
+  "function finalize(expectedCount)",
+  "AUTOCOLLAUDO AGGIORNAMENTO SUPERATO",
+  "window.condoSelfCheckV1={auditWorkbook,auditFile,resetBatch,add,finalize,renderBatchSummary"
+]);
+ok('runtime self-check verifies source order, ordinary installments and conguagli before Drive commit');
+
 mustContain('legacy-v28.html', [
   "function setItem(pid,i,v)",
   "function setCredit(pid,i,v)",
@@ -96,11 +107,17 @@ mustContain('drive-sync-v2.js', [
   "localStorage.setItem(ARCHIVE_KEY,JSON.stringify({condomini:{}}))",
   "function rollbackFullRefreshTransaction()",
   "function recoverInterruptedTransaction()",
+  "const checker=window.condoSelfCheckV1",
+  "const audit=await checker.auditFile",
+  "if(!audit.ok)throw new Error",
+  "const auditSummary=checker.finalize(ok.length)",
+  "const fresh=verifyFreshArchive(tx.startedAt)",
+  "const protectedCheck=verifyProtectedData(tx)",
   "if(result.updated!==rows.length)",
   ".sort((a,b)=>a.name.localeCompare(b.name,'it'))"
 ]);
 mustNotContain('drive-sync-v2.js', ["state[key]===currentSig"]);
-ok('Drive V2 uses official root, reloads every balance and protects full refresh with rollback');
+ok('Drive V2 reloads every balance, runs self-check, verifies fresh memory/protected data and rolls back on failure');
 
 mustContain('whatsapp-v6.js', [
   "input.value='';",
