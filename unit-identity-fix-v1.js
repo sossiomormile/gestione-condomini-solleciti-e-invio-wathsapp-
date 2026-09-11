@@ -61,12 +61,12 @@ function unitEvidence(hist,cand){
  }
  return {score,matched,conflicts};
 }
-function rewriteUnitIdentity(wb){
+function rewriteUnitIdentity(wb,unresolved){
  const inc=(wb.SheetNames||[]).find(s=>nrm(s).startsWith('INCASSI '))||(wb.SheetNames||[]).find(s=>nrm(s).includes('INCASSI'));
  if(!inc)return wb;
  const incRows=XLSX.utils.sheet_to_json(wb.Sheets[inc],{header:1,defval:null,raw:true}),current=parseUnits(incRows);
  if(!current.length)return wb;
- const clone={...wb,Sheets:{...wb.Sheets}},resolved=[];
+ const clone={...wb,Sheets:{...wb.Sheets}},resolved=[],unresolvedText=(unresolved||[]).join('\n');
  for(const sn of wb.SheetNames||[]){
    const nn=nrm(sn),isCong=nn.includes('CONG')||((nn.includes('REC')||nn.includes('RECUPERO'))&&nn.includes('INCASS'));
    if(sn===inc||!isCong)continue;
@@ -74,6 +74,7 @@ function rewriteUnitIdentity(wb){
    if(!hist.length)continue;
    const ws={...ws0};let changed=false;
    for(const rec of hist){
+     if(!unresolvedText.includes(`· ${rec.name}:`))continue;
      const core=primaryParty(rec.name);if(!core)continue;
      const possible=[];
      for(const cand of current){
@@ -95,7 +96,13 @@ function rewriteUnitIdentity(wb){
  window.condoUnitIdentityFixV1.lastResolved=resolved;
  return clone;
 }
-function analyzeWithUnitIdentity(wb,fileName){return baseAnalyze(rewriteUnitIdentity(wb),fileName)}
+function analyzeWithUnitIdentity(wb,fileName){
+ const baseline=baseAnalyze(wb,fileName);
+ if(!(baseline.unresolved||[]).length){window.condoUnitIdentityFixV1.lastResolved=[];return baseline}
+ const rewritten=rewriteUnitIdentity(wb,baseline.unresolved);
+ if(!window.condoUnitIdentityFixV1.lastResolved.length)return baseline;
+ return baseAnalyze(rewritten,fileName);
+}
 window.condoAnalyzeV6=analyzeWithUnitIdentity;
 window.condoUnitIdentityFixV1={rewriteUnitIdentity,primaryParty,unitEvidence,lastResolved:[]};
 })();
