@@ -1,7 +1,7 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "created_at": "2026-09-11T20:12:00+02:00",
-  "updated_at": "2026-09-11T21:05:00+02:00",
+  "updated_at": "2026-09-11T21:47:00+02:00",
   "branch": "Condominio_App-1.0-test",
   "baseline_commit": "cda80fd791685126a185f42370224ac4bf8d1366",
   "backup_branch": "Condominio_App-1.0-test-backup-pre-blindatura-20260911",
@@ -20,8 +20,13 @@
     "rate_ordinarie": {
       "status": "LOCKED_OK_AFTER_PROBLEM1_FIX",
       "scope": "11 real condomini",
-      "rule": "Do not change calculation logic. Only explicitly authorized corrections may alter output.",
-      "future_month_items_after_fix": 0
+      "rule": "Do not change calculation logic. Only explicitly authorized corrections may alter output."
+    },
+    "source_order": {
+      "status": "LOCKED_OK_AUTOMATED",
+      "scope": "11 real condomini / 355 official Incassi rows",
+      "rule": "Displayed people must follow the relative row order of the current Incassi sheet; source row is an ordering clue only, never a persistent identity key.",
+      "unmatched_in_real_order_audit": 0
     },
     "crediti_compensazioni": {
       "status": "LOCKED_OK_LOGIC",
@@ -36,8 +41,8 @@
       "rule": "Drive folders remain ordered with Italian locale ordering."
     },
     "drive_sync": {
-      "status": "LOCKED_OK_LOGIC",
-      "rule": "Use only the configured official Drive root and prune locally archived condomini removed from Drive."
+      "status": "FULL_REFRESH_V2_AUTOMATED_OK_PENDING_PHONE",
+      "rule": "AGGIORNA scans Drive first, then clears only archive/sync accounting data inside a recoverable transaction, reloads every valid balance without signature skipping, commits only on complete success and restores the previous archive on interruption/error. Contacts and message history are outside the transaction."
     },
     "whatsapp_contatti": {
       "status": "LOCKED_OK_LOGIC",
@@ -54,7 +59,7 @@
     "Email and messa in mora are hidden from the V1 operational UI but retained in code for future reactivation"
   ],
   "known_open_problems_not_to_freeze_as_correct": [
-    "SUB/duplicate-looking units and summary rows such as ANCORA DA INCASSARE remain a later structural task where they do not affect the locked ordinary/conguaglio flow"
+    "SUB/duplicate-looking units remain a later structural task; source row is not used as permanent unit identity"
   ],
   "protected_runtime_files": [
     "app-current.html",
@@ -62,10 +67,12 @@
     "engine-v6.js",
     "unit-identity-fix-v1.js",
     "conguaglio-position-fix-v2.js",
+    "v1-source-order.js",
     "v1-focus-ordinary-conguagli.js",
     "app-v5.js",
     "whatsapp-v6.js",
     "drive-sync-v1.js",
+    "drive-sync-v2.js",
     "folder-name-fix-v1.js",
     "archive-dropdown-v1.js",
     "persistent-cache-v1.js",
