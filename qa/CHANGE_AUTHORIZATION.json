@@ -1,33 +1,48 @@
 {
-  "authorization_version": 3,
-  "reason": "V1 operational scope authorized by user: ordinary installments + conguagli + WhatsApp only. Extraordinary/individual expenses remain in the accounting engine for future work but are filtered out of the operational UI, selected totals and WhatsApp message path. Existing rate and conguaglio engines are unchanged.",
+  "authorization_version": 4,
+  "reason": "User authorized fixes for point 1 (display people in the exact Incassi source sequence) and point 4 (AGGIORNA must rebuild accounting data from Drive from a clean archive). The accounting engines for ordinary rates and the 285 conguagli are not changed. Source order is a post-processing step only; Drive V2 clears only archive/sync data inside a rollback transaction and preserves contacts/history.",
   "approved_changed_runtime_files": [
     "app-current.html",
     "conguaglio-position-fix-v2.js",
-    "v1-focus-ordinary-conguagli.js"
+    "drive-sync-v2.js",
+    "v1-focus-ordinary-conguagli.js",
+    "v1-source-order.js"
   ],
   "regression_gates": {
     "all_11_real_condomini_tested": true,
     "rate_ordinarie_unchanged_except_explicit_fix": true,
     "conguagli_same_285_associations": true,
     "conguagli_da_verificare_zero": true,
+    "source_order_matches_incassi_11_of_11": true,
+    "source_order_unmatched_zero": true,
+    "summary_rows_not_people": true,
     "credits_manual_only": true,
     "single_item_selection_ok": true,
     "v1_extra_items_excluded_from_totals": true,
     "v1_extra_items_excluded_from_whatsapp": true,
-    "drive_order_and_prune_ok": true,
+    "drive_full_refresh_no_signature_skip": true,
+    "drive_full_refresh_rollback_ok": true,
+    "drive_full_refresh_preserves_contacts_history": true,
     "whatsapp_contacts_not_transferred_between_owners": true,
     "send_functions_smoke_tested": true
   },
   "evidence": {
-    "ordinary_people_modeled_previous_real_regression": 300,
-    "month_records_modeled_previous_real_regression": 303,
-    "future_month_items_after_problem1_fix": 0,
+    "real_source_order_rows_checked": 355,
+    "real_source_order_exact": 355,
+    "real_source_order_unmatched": 0,
+    "summary_rows_filtered": 3,
+    "summary_row_locations": [
+      "Parco San Nazario row 47",
+      "Parco del Sole row 109",
+      "Parco Pantani row 68"
+    ],
+    "source_order_audit_file": "qa/SOURCE_ORDER_REAL_AUDIT_20260911.json",
     "conguaglio_engine_files_changed": false,
     "unit_identity_engine_changed": false,
-    "ordinary_month_engine_changed_in_v1_scope_change": false,
+    "ordinary_month_engine_changed_in_this_change": false,
     "whatsapp_contact_file_changed": false,
-    "drive_sync_file_changed": false,
-    "v1_filter_test": "qa/test-v1-focus.mjs verifies ordinary/cong preservation, extra removal, V1 credit whitelist, V1 gross and WhatsApp-source text"
+    "drive_v2_transaction_test": "qa/test-drive-full-refresh.mjs",
+    "source_order_unit_test": "qa/test-source-order.mjs",
+    "v1_filter_test": "qa/test-v1-focus.mjs"
   }
 }
