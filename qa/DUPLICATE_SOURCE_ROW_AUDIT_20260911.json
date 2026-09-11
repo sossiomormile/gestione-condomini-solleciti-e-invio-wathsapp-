@@ -1,0 +1,41 @@
+{
+  "purpose": "Documentare il caso reale che ha fatto fallire l'autocollaudo live su Condominio Di.Be e la correzione scelta senza modificare importi o resolver conguagli.",
+  "result": "FIXED_BY_SOURCE_ROW_IDENTITY",
+  "condominio": "Condominio Di.Be",
+  "incassi_sheet": "Incassi 2025-26",
+  "duplicate_units": [
+    {
+      "excel_row": 6,
+      "nominativo": "BELARDO M. / DI GUIDA E.",
+      "sub": "4",
+      "scala": "NEG",
+      "piano": "P.T",
+      "interno": "0",
+      "ordinary_rate_rounded": 17.30
+    },
+    {
+      "excel_row": 7,
+      "nominativo": "BELARDO M. / DI GUIDA E.",
+      "sub": "5",
+      "scala": "NEG",
+      "piano": "P.T",
+      "interno": "0",
+      "ordinary_rate_rounded": 17.64
+    }
+  ],
+  "live_error_before_fix": [
+    "prima unità: app Maggio 17.64, Drive Maggio 17.30",
+    "seconda unità: app Maggio 17.30, Drive Maggio 17.64"
+  ],
+  "root_cause": "Le due unità hanno lo stesso nominativo e gli stessi campi scala/interno/piano. Il riordino post-processing non disponeva del SUB/riga sorgente sulla persona e risolveva il pareggio con l'ordine corrente, potendo invertire le due unità.",
+  "fix": "La patch rate propaga SUB e sourceRow dalla precisa riga Incassi già usata per le rate. Il riordino usa sourceRow come evidenza prioritaria, poi ricade sulla compatibilità strutturale solo quando sourceRow non è disponibile.",
+  "safety": {
+    "ordinary_amount_formula_changed": false,
+    "ordinary_items_recalculated_differently": false,
+    "conguaglio_resolver_changed": false,
+    "conguaglio_amounts_changed": false,
+    "drive_transaction_changed": false,
+    "whatsapp_logic_changed": false
+  },
+  "regression_test": "qa/test-source-order.mjs include due unità omonime invertite in input e richiede output 17.30 poi 17.64 con SUB 4 poi 5."
+}
