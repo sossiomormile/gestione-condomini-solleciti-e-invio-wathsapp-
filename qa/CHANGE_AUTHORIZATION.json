@@ -1,0 +1,16 @@
+{
+  "authorization_version": 1,
+  "reason": "No runtime change authorized yet. This file must be updated only after an explicit user-approved modification and a complete regression test on all 11 real condomini.",
+  "approved_changed_runtime_files": [],
+  "regression_gates": {
+    "all_11_real_condomini_tested": false,
+    "rate_ordinarie_unchanged_except_explicit_fix": false,
+    "conguagli_same_285_associations": false,
+    "conguagli_da_verificare_zero": false,
+    "credits_manual_only": false,
+    "single_item_selection_ok": false,
+    "drive_order_and_prune_ok": false,
+    "whatsapp_contacts_not_transferred_between_owners": false,
+    "send_functions_smoke_tested": false
+  }
+}

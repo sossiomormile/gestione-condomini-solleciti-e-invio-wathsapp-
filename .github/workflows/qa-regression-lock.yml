@@ -1,0 +1,24 @@
+name: Condominio App - QA Lock
+
+on:
+  push:
+    branches:
+      - Condominio_App-1.0-test
+  pull_request:
+    branches:
+      - Condominio_App-1.0-test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify protected behavior and change authorization
+        run: node qa/verify-protected-behavior.mjs
