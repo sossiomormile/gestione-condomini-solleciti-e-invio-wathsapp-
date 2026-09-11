@@ -12,13 +12,19 @@ const mustContain = (file, needles) => {
     if (!text.includes(needle)) fail(`${file} no longer contains protected marker: ${needle}`);
   }
 };
+const mustNotContain = (file, needles) => {
+  const text = read(file);
+  for (const needle of needles) {
+    if (text.includes(needle)) fail(`${file} contains forbidden regression marker: ${needle}`);
+  }
+};
 
 // 1) Entrypoint and patch order: the test app must keep the already-tested chain.
 const appCurrent = read('app-current.html');
 const ordered = [
   'engine-v6.js?v=20260911-conguagli5',
   'unit-identity-fix-v1.js?v=20260911-unit2',
-  'conguaglio-position-fix-v2.js?v=20260911-rates3'
+  'conguaglio-position-fix-v2.js?v=20260911-rates4'
 ];
 let last = -1;
 for (const marker of ordered) {
@@ -44,14 +50,18 @@ mustContain('unit-identity-fix-v1.js', [
 ]);
 ok('conguaglio resolver and unit-identity guard markers are present');
 
-// 3) Ordinary/future-month protection markers. This is a structural guard only;
-// real-file regression remains mandatory before authorization.
+// 3) Ordinary/future-month protection markers. Real-file regression remains mandatory.
 mustContain('conguaglio-position-fix-v2.js', [
   "if(isFutureMonth(x.year,x.mese))continue;",
+  "const idx=records.findIndex((r,i)=>!used.has(i)&&canon(r.name)===canon(p.name))",
   "other=(p.items||[]).filter(x=>x.type!=='ordinary')",
   "p.items=[...ordinary,...other]"
 ]);
-ok('future-month filtering and preservation of non-ordinary items are structurally protected');
+mustNotContain('conguaglio-position-fix-v2.js', [
+  "idx<0&&p.interno",
+  "String(r.interno)===String(p.interno)&&(!p.scala||!r.scala||nrm(r.scala)===nrm(p.scala))"
+]);
+ok('future-month filtering is protected and ordinary rows cannot fall back to interno-only matching');
 
 // 4) Credits and per-item selection must remain manual.
 mustContain('legacy-v28.html', [
