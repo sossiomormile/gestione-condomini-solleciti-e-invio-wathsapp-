@@ -1,0 +1,57 @@
+{
+  "audit": "V1 deep real-data audit",
+  "date": "2026-09-11",
+  "source": "11 bilanci ufficiali selezionati dalla cartella Condomini_APP",
+  "spreadsheet_reader": "artifact_tool",
+  "scope": "rate ordinarie + conguagli + WhatsApp",
+  "aggregate": {
+    "files": 11,
+    "incassi_source_units": 355,
+    "ordinary_unpaid_month_items": 1070,
+    "ordinary_unpaid_total_eur": 41471.34,
+    "conguaglio_rows": 285,
+    "conguaglio_unresolved": 0,
+    "summary_rows_filtered": 3,
+    "legacy_contact_key_collision_groups": 7,
+    "legacy_contact_key_active_collision_groups": 3
+  },
+  "determinism": {
+    "same_source_read_repeated": true,
+    "files_matching_repeated_parse": 11,
+    "files_checked": 11
+  },
+  "summary_rows": {
+    "label": "ANCORA DA INCASSARE",
+    "locations": [
+      "Parco San Nazario",
+      "Parco del Sole",
+      "Parco Pantani"
+    ],
+    "expected_runtime_behavior": "never create a condominium person or ordinary debt item"
+  },
+  "contact_identity_finding": {
+    "legacy_key_shape": "building + name + scala + interno",
+    "problem": "distinct units can share the same legacy contact/history key",
+    "active_collision_condomini": [
+      "Parco Iris",
+      "Parco San Nazario",
+      "Di.Be"
+    ],
+    "required_fix": "unit-aware identity using SUB where present and source-row/source-order fallback only for otherwise indistinguishable duplicate units; ambiguous legacy contacts must not auto-migrate"
+  },
+  "drive_refresh_findings": {
+    "folder_title_must_be_runtime_loaded": true,
+    "archive_keys_must_exactly_match_current_drive_folders": true,
+    "last_update_metadata_must_rollback_on_failure": true,
+    "partial_failed_runtime_view_must_not_remain_usable": true,
+    "unchanged_file_signature_must_not_skip_rebuild": true
+  },
+  "protected_invariants": {
+    "ordinary_future_items": 0,
+    "conguagli_rows": 285,
+    "conguagli_unresolved": 0,
+    "extraordinary_items_in_v1": 0,
+    "credits_default_manual": true
+  },
+  "notes": "This audit records aggregate/non-PII evidence only. Resident names and phone numbers are intentionally omitted."
+}
