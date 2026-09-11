@@ -42,7 +42,8 @@ mustContain('v1-focus-ordinary-conguagli.js',["const allowedItem=x=>x&&((x.type=
 
 mustContain('folder-name-fix-v1.js',["window.condoSetFolderTitle=function(title)","a.condomini[forcedTitle]=rec","if(building)building.textContent=forcedTitle"]);ok('Drive folder name controls displayed/archive condominium identity');
 
-mustContain('unit-contact-identity-v1.js',["function key(p)","if(sub)return'SUB:'+sub","duplicateStructuralCount(p)>1","legacyIsUnambiguous(p)","const PENDING_KEY='condo_wa_pending_v8'","const k='condo_hist_v28_'+key(p)","location.href='https://wa.me/'+phone+'?text='+text"]);ok('contacts, pending WhatsApp and history are isolated by unit identity including SUB/duplicate fallback');
+mustContain('unit-contact-identity-v1.js',["function key(p)","if(sub)return'SUB:'+sub","duplicateStructuralCount(p)>1","legacyIsUnambiguous(p)","const PENDING_KEY='condo_wa_pending_v8'","function unitHistoryKey(p){return'condo_hist_v28_'+key(p)}","if(all[old]&&legacyIsUnambiguous(p))return all[old]","function getHistoryUnit(p)","function addHistoryUnit(p,channel,amount)","location.href='https://wa.me/'+phone+'?text='+text"]);
+mustNotContain('unit-contact-identity-v1.js',["all[k]={...all[old]};writeContacts(all)","localStorage.setItem(k,localStorage.getItem(old))"]);ok('contacts/history are unit-isolated and legacy fallbacks are read-only until a real user action writes the new unit key');
 
 mustContain('v1-self-check.js',["function compareOrdinaryAndOrder(people,source)","function parseCongSource(wb)","function compareConguagli(wb,fileName,people,sourceCong)","function finalize(expectedCount)","AUTOCOLLAUDO AGGIORNAMENTO SUPERATO","window.condoSelfCheckV1={auditWorkbook,auditFile,resetBatch,add,finalize,renderBatchSummary"]);
 mustContain('v1-self-check-cents-v2.js',["roundingBasis:'singola posizione arrotondata a 2 decimali'","window.condoSelfCheckCentsV2={roundedSourceConguagli,normalize}"]);
