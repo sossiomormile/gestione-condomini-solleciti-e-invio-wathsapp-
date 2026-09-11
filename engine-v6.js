@@ -37,21 +37,35 @@ function analyzeV6(wb,fileName){
  const ensure=p=>people[p]||(people[p]={ordinario:0,rate_scoperte:[],conguaglio:0,spese_individuali:0,straordinari:[],crediti:[]});
  for(const [p,d] of Object.entries(ordinary)){Object.assign(ensure(p),{ordinario:d.ordinario,rate_scoperte:d.rate_scoperte,spese_individuali:d.spese_individuali});ordinaryMeta[p]=d;if(d.credito>.01)ensure(p).crediti.push({label:'Eccedenza / credito da incassi ordinari',amount:d.credito})}
  const ordinaryOrder=Object.entries(ordinaryMeta).sort((a,b)=>a[1]._position-b[1]._position).map(([name,meta])=>({name,...meta}));
- const fieldContradiction=(a,b)=>{const x=nrm(a),y=nrm(b);return !!(x&&y&&x!==y)};
- const matchPerson=rec=>{
-   const target=ordinaryOrder[rec._position];
-   if(!target)return {name:null,reason:'posizione non presente nell’anagrafica Incassi'};
-   if(!nameCompatible(rec.nominativo,target.name))return {name:null,reason:`nome non compatibile con la stessa posizione (${target.name})`};
-   const unitContradiction=fieldContradiction(rec.interno,target.interno)||fieldContradiction(rec.scala,target.scala)||fieldContradiction(rec.piano,target.piano);
-   if(unitContradiction)return {name:null,reason:'contraddizione su scala/interno/piano'};
-   const prevTarget=rec._position>0?ordinaryOrder[rec._position-1]:null,nextTarget=rec._position<ordinaryOrder.length-1?ordinaryOrder[rec._position+1]:null;
+ const exactName=(a,b)=>{const x=canonName(a),y=canonName(b);return !!(x&&y&&x===y)};
+ const neighborCheck=(rec,idx)=>{
+   const prevTarget=idx>0?ordinaryOrder[idx-1]:null,nextTarget=idx<ordinaryOrder.length-1?ordinaryOrder[idx+1]:null;
    const prevComparable=!!(rec._prevName&&prevTarget),nextComparable=!!(rec._nextName&&nextTarget);
    const prevOk=prevComparable&&nameCompatible(rec._prevName,prevTarget.name),nextOk=nextComparable&&nameCompatible(rec._nextName,nextTarget.name);
    const contradiction=(prevComparable&&!prevOk)||(nextComparable&&!nextOk);
-   const confirmed=prevOk||nextOk;
-   if(contradiction)return {name:null,reason:'contraddizione con il vicino sopra/sotto'};
-   if(!confirmed)return {name:null,reason:'nessun vicino sopra/sotto conferma la posizione'};
-   return {name:target.name,reason:'nome + posizione + vicino confermato + nessuna contraddizione'};
+   return {confirmed:prevOk||nextOk,contradiction,prevOk,nextOk};
+ };
+ const matchPerson=rec=>{
+   const exact=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>exactName(rec.nominativo,z.x.name));
+   if(exact.length===1)return {name:exact[0].x.name,reason:'nominativo coincidente in modo univoco'};
+
+   const target=ordinaryOrder[rec._position];
+   if(target&&nameCompatible(rec.nominativo,target.name)){
+     const ev=neighborCheck(rec,rec._position);
+     if(!ev.contradiction&&ev.confirmed)return {name:target.name,reason:'nome parziale + stessa posizione + vicino sopra/sotto confermato'};
+   }
+
+   const compatible=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>nameCompatible(rec.nominativo,z.x.name));
+   if(compatible.length===1){
+     const cand=compatible[0],ev=neighborCheck(rec,cand.i);
+     if(cand.i===rec._position&&!ev.contradiction&&ev.confirmed)return {name:cand.x.name,reason:'nome parziale + stessa posizione + vicino sopra/sotto confermato'};
+     if(cand.i!==rec._position)return {name:null,reason:`nome parziale compatibile ma posizione diversa (${cand.i+1} invece di ${rec._position+1})`};
+     if(ev.contradiction)return {name:null,reason:'nome parziale e posizione coerenti ma vicino sopra/sotto in contraddizione'};
+     return {name:null,reason:'nome parziale e posizione coerenti ma nessun vicino sopra/sotto conferma'};
+   }
+   if(compatible.length>1)return {name:null,reason:'nome compatibile con più condomini: associazione ambigua'};
+   if(exact.length>1)return {name:null,reason:'nominativo identico presente in più unità: serve conferma di posizione/vicini'};
+   return {name:null,reason:'nominativo non compatibile con il condomino nella stessa posizione'};
  };
  const unresolved=[];
  for(const [sn,rows] of Object.entries(sheets)){
