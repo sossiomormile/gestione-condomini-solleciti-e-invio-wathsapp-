@@ -1,9 +1,9 @@
 <!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#7c3aed"><title>Condominio APP · TEST OAuth</title><style>body{margin:0;font-family:system-ui;background:#f3f5f8;color:#17324d}#boot{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}#boot b{display:block;color:#7c3aed;margin-bottom:8px}</style></head><body><div id="boot"><div><b>VERSIONE TEST</b>Apertura Gestione Condomini…</div></div><script>
 (async()=>{
  const boot=document.getElementById('boot');
- const BASE='https://raw.githack.com/sossiomormile/gestione-condomini-solleciti-e-invio-wathsapp-/306df3e28b0096a9a484ae917b6f03d2deef59bd/';
+ const BASE='https://raw.githack.com/sossiomormile/gestione-condomini-solleciti-e-invio-wathsapp-/c85005515564da6232d32e197a81e55d981c5070/';
  try{
-  const r=await fetch(BASE+'legacy-v28.html?phoneTest=oauth2',{cache:'no-store'});
+  const r=await fetch(BASE+'legacy-v28.html?phoneTest=oauth3',{cache:'no-store'});
   if(!r.ok)throw new Error('legacy-v28.html '+r.status);
   let t=await r.text();
   const banner='<div id="testVersionBanner" style="position:sticky;top:0;z-index:9999;background:#7c3aed;color:white;text-align:center;padding:7px 10px;font:700 13px system-ui">🧪 VERSIONE TEST · origine GitHub Pages</div><div id="testLoadState" style="background:#fff3cd;color:#664d03;text-align:center;padding:6px 10px;font:700 12px system-ui">⏳ Preparazione moduli TEST…</div>';
