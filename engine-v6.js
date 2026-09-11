@@ -25,7 +25,7 @@ function parseBalanceSheet(rows){
  const hi=findHeader(rows);if(hi==null)return [[], 'intestazione non riconosciuta'];
  const H=effectiveHeaders(rows,hi),namec=colExact(H,'NOMINATIVO','CONDOMINO'),intc=colExact(H,'INT','INT.','INTERNO'),scalac=colExact(H,'SCALA'),pianoc=colExact(H,'P','PIANO'),totaldue=colContains(H,'TOTALE ANNUO DA INCASSARE','TOTALE PERIODO DA INCASSARE','TOTALE DA INCASSARE'),balancec=colContains(H,'TOTALE ANNUO ANCORA DA INCASSARE','TOTALE PERIODO ANCORA DA INCASSARE','ANCORA DA INCASSARE','DA INCASSARE','SALDO','RESIDUO'),duec=colContains(H,'CONGUAGLIO','IMPORTO','DA VERSARE','RATA','TAB. A'),paidc=colExact(H,'PAGATO','VERSATO','INCASSATO'),reimbc=colExact(H,'RIMBORSATO'),mcols=monthCols(H),allPeople=[],out=[];let unresolved=false;
  rows.slice(hi+1).forEach((r,offset)=>{const person=String(val(r,namec)??'').trim();if(!person||nrm(person).startsWith('TOTALE')||nrm(person).startsWith('SCALA'))return;const base={nominativo:person,interno:String(val(r,intc)??''),scala:String(val(r,scalac)??''),piano:String(val(r,pianoc)??''),_position:allPeople.length,_row:hi+1+offset};allPeople.push(base);const raw=val(r,balancec);let bal;if(balancec!=null&&!(typeof raw==='string'&&raw.includes('#')))bal=num(raw);else{const due=num(val(r,totaldue))||num(val(r,duec)),paid=num(val(r,paidc))+mcols.reduce((s,[c])=>s+num(val(r,c)),0),reimb=num(val(r,reimbc));if(due===0){unresolved=true;return}bal=due-paid+reimb}if(Math.abs(bal)>.01)out.push({...base,importo:round2(bal)});});
- out.forEach(rec=>{const i=rec._position;rec._prevName=i>0?allPeople[i-1].nominativo:'';rec._nextName=i<allPeople.length-1?allPeople[i+1].nominativo:'';});
+ out.forEach(rec=>{const i=rec._position;rec._prevName=i>0?allPeople[i-1].nominativo:'';rec._nextName=i<allPeople.length-1?allPeople[i+1].nominativo:'';rec._allNames=allPeople.map(x=>x.nominativo);});
  return [out,unresolved?'formula/struttura ricalcolata':null]
 }
 function workbookSheets(wb){const sheets={};for(const name of wb.SheetNames||[])sheets[name]=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true});return sheets}
@@ -52,6 +52,11 @@ function analyzeV6(wb,fileName){
    for(const t of shorter){let best=null;for(let j=0;j<longer.length;j++){if(used.has(j))continue;const u=longer[j];if(t===u||(t.length===1&&u.startsWith(t))||(u.length===1&&t.startsWith(u))){best={d:0,j};break}if(t.length>=6&&u.length>=6){const d=levenshtein(t,u);if(d<=2&&(!best||d<best.d))best={d,j}}}if(!best)return false;used.add(best.j);if(best.d===0)exactish++;else fuzzy++}
    return fuzzy===1&&exactish>=1;
  };
+ const shiftEvidence=(rec,candIdx)=>{
+   const hist=rec._allNames||[],pos=rec._position;let compared=0,confirmed=0,contradictions=0;
+   for(const delta of [-2,-1,1,2]){const hi=pos+delta,oi=candIdx+delta;if(hi<0||oi<0||hi>=hist.length||oi>=ordinaryOrder.length)continue;compared++;if(nameCompatible(hist[hi],ordinaryOrder[oi].name)||typoCompatible(hist[hi],ordinaryOrder[oi].name))confirmed++;else contradictions++}
+   return {compared,confirmed,contradictions};
+ };
  const matchPerson=rec=>{
    const exact=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>exactName(rec.nominativo,z.x.name));
    if(exact.length===1)return {name:exact[0].x.name,reason:'nominativo coincidente in modo univoco'};
@@ -61,6 +66,9 @@ function analyzeV6(wb,fileName){
 
    const typo=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>typoCompatible(rec.nominativo,z.x.name));
    if(typo.length===1&&typo[0].i===rec._position)return {name:typo[0].x.name,reason:'piccola variante/refuso univoco + stessa posizione'};
+
+   if(compatible.length===1){const cand=compatible[0],distance=Math.abs(cand.i-rec._position);if(distance>=1&&distance<=3){const ev=shiftEvidence(rec,cand.i);if(ev.confirmed>=2&&ev.contradictions<=1)return {name:cand.x.name,reason:`nome univoco + slittamento ${cand.i-rec._position} + sequenza confermata ${ev.confirmed}/${ev.compared}`}}}
+   if(typo.length===1){const cand=typo[0],distance=Math.abs(cand.i-rec._position);if(distance>=1&&distance<=3){const ev=shiftEvidence(rec,cand.i);if(ev.confirmed>=2&&ev.contradictions<=1)return {name:cand.x.name,reason:`piccola variante/refuso + slittamento ${cand.i-rec._position} + sequenza confermata ${ev.confirmed}/${ev.compared}`}}}
 
    const target=ordinaryOrder[rec._position];
    if(target&&nameCompatible(rec.nominativo,target.name)){
