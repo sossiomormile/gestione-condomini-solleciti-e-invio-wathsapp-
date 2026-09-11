@@ -3,7 +3,11 @@
 if(typeof window.condoAnalyzeV6!=='function'||typeof XLSX==='undefined')return;
 const baseAnalyze=window.condoAnalyzeV6;
 const nrm=x=>String(x??'').trim().replace(/\s+/g,' ').toUpperCase();
+const canon=x=>nrm(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
+const MONTHS={GEN:'Gennaio',GENNAIO:'Gennaio',FEB:'Febbraio',FEBBRAIO:'Febbraio',MAR:'Marzo',MARZO:'Marzo',APR:'Aprile',APRILE:'Aprile',MAG:'Maggio',MAGGIO:'Maggio',GIU:'Giugno',GIUGNO:'Giugno',LUG:'Luglio',LUGLIO:'Luglio',AGO:'Agosto',AGOSTO:'Agosto',SET:'Settembre',SETT:'Settembre',SETTEMBRE:'Settembre',OTT:'Ottobre',OTTOBRE:'Ottobre',NOV:'Novembre',NOVEMBRE:'Novembre',DIC:'Dicembre',DICEMBRE:'Dicembre'};
 const MONTH_NUM={GENNAIO:1,FEBBRAIO:2,MARZO:3,APRILE:4,MAGGIO:5,GIUGNO:6,LUGLIO:7,AGOSTO:8,SETTEMBRE:9,OTTOBRE:10,NOVEMBRE:11,DICEMBRE:12};
+const num=x=>{if(typeof x==='number'&&Number.isFinite(x))return x;if(typeof x==='string'){let v=x.trim();if(!v)return 0;if(v.includes(',')&&v.includes('.'))v=v.replace(/\./g,'').replace(',','.');else if(v.includes(','))v=v.replace(',','.');const z=parseFloat(v);return Number.isFinite(z)?z:0}return 0};
+const round2=x=>Math.round((Number(x)||0)*100)/100;
 function sanitizeWorkbook(wb){
   const clone={...wb,Sheets:{...wb.Sheets}};
   for(const [name,ws0] of Object.entries(wb.Sheets||{})){
@@ -45,15 +49,64 @@ function removeFutureOrdinary(result){
       const y=mn>=6?startYear:startYear+1;
       return y<cy||(y===cy&&mn<=cm);
     });
-    if(p._v6)p._v6.gross=Math.round((p.items||[]).reduce((s,x)=>s+(Number(x.amount)||0),0)*100)/100;
+    if(p._v6)p._v6.gross=round2((p.items||[]).reduce((s,x)=>s+(Number(x.amount)||0),0));
   }
   return result;
 }
+function findIncassiSheet(wb){return (wb.SheetNames||[]).find(s=>nrm(s).startsWith('INCASSI '))||(wb.SheetNames||[]).find(s=>nrm(s).includes('INCASSI'))||''}
+function scaleFromRow(row){for(let c=0;c<Math.min(4,row.length);c++){const s=nrm(row[c]).replace(/["']/g,' ');let m=s.match(/\bSCALA\s+([A-Z0-9]+)\b/);if(m)return m[1];m=s.match(/\bFABBRICATO\s+([A-Z0-9]+)\b/);if(m)return m[1];}return ''}
+function fixOrdinaryByRealMonthCells(result,wb){
+  const inc=findIncassiSheet(wb);if(!inc)return result;
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[inc],{header:1,defval:null,raw:true});
+  let scala='',header=null;
+  const records=[];
+  for(let r=0;r<rows.length;r++){
+    const row=rows[r]||[],sc=scaleFromRow(row);if(sc)scala=sc;
+    const normalized=row.map(nrm);
+    const nameCol=normalized.findIndex(x=>x==='CONDOMINO'||x==='NOMINATIVO');
+    if(nameCol>=0){
+      const rataCol=normalized.findIndex(x=>x==='RATA');
+      const internoCol=normalized.findIndex(x=>x==='INTERNO'||x==='INT'||x==='INT.');
+      const pianoCol=normalized.findIndex(x=>x==='PIANO'||x==='P');
+      const monthCols=[];normalized.forEach((x,i)=>{if(MONTHS[x])monthCols.push([i,MONTHS[x]])});
+      if(rataCol>=0&&monthCols.length){header={nameCol,rataCol,internoCol,pianoCol,monthCols};continue}
+    }
+    if(!header)continue;
+    const name=String(row[header.nameCol]??'').trim();
+    if(!name||/^TOTALE\b/i.test(name)||/^SCALA\b/i.test(name)||/^CONDOMINO$/i.test(name))continue;
+    const rata=num(row[header.rataCol]);if(rata<=0)continue;
+    const unpaid=[];
+    for(const [c,mese] of header.monthCols){
+      const paid=Math.max(0,num(row[c]));
+      const rem=Math.max(0,rata-paid);
+      if(rem>.01)unpaid.push({mese,importo:round2(rem)});
+    }
+    records.push({name,scala,interno:header.internoCol>=0?String(row[header.internoCol]??''):'',piano:header.pianoCol>=0?String(row[header.pianoCol]??''):'',unpaid});
+  }
+  const used=new Set();
+  for(const p of result.people||[]){
+    let idx=records.findIndex((r,i)=>!used.has(i)&&canon(r.name)===canon(p.name));
+    if(idx<0&&p.interno){idx=records.findIndex((r,i)=>!used.has(i)&&String(r.interno)===String(p.interno)&&(!p.scala||!r.scala||nrm(r.scala)===nrm(p.scala)))}
+    if(idx<0)continue;
+    used.add(idx);const rec=records[idx];
+    const other=(p.items||[]).filter(x=>x.type!=='ordinary');
+    const ordinary=rec.unpaid.map(x=>({type:'ordinary',label:x.mese,amount:x.importo,selected:true}));
+    p.items=[...ordinary,...other];
+    if(!p.scala&&rec.scala)p.scala=rec.scala;
+    if(!p.interno&&rec.interno)p.interno=rec.interno;
+    if(!p.piano&&rec.piano)p.piano=rec.piano;
+    if(p._v6){p._v6.gross=round2(p.items.reduce((s,x)=>s+(Number(x.amount)||0),0));p._v6.monthSource='celle reali Incassi'}
+  }
+  result.people.sort((a,b)=>String(a.scala||'').localeCompare(String(b.scala||''),'it',{numeric:true})||String(a.interno||'').localeCompare(String(b.interno||''),'it',{numeric:true})||String(a.name||'').localeCompare(String(b.name||''),'it'));
+  result.people.forEach((p,i)=>p.id=i);
+  return result;
+}
 function analyzePatched(wb,fileName){
-  return removeFutureOrdinary(baseAnalyze(sanitizeWorkbook(wb),fileName));
+  const clean=sanitizeWorkbook(wb);
+  return removeFutureOrdinary(fixOrdinaryByRealMonthCells(baseAnalyze(clean,fileName),wb));
 }
 window.condoAnalyzeV6=analyzePatched;
-window.condoAnalyzeAssociationFixV2={sanitizeWorkbook,analyzePatched,removeFutureOrdinary};
+window.condoAnalyzeAssociationFixV2={sanitizeWorkbook,analyzePatched,removeFutureOrdinary,fixOrdinaryByRealMonthCells};
 parseFile=async function(file){
   loader.classList.remove('hidden');results.classList.add('hidden');
   try{
@@ -65,9 +118,9 @@ parseFile=async function(file){
     if(!r.frontKey){const ws=XLSX.utils.aoa_to_sheet([[r.title]]);wb.Sheets.Frotespizio=ws;wb.SheetNames.push('Frotespizio')}
     render(file.name,wb);
     building.textContent=r.title;
-    source.textContent='Motore V7 · associazione conguagli verificata · '+file.name+(r.unresolved.length?' · '+r.unresolved.length+' casi da verificare':'');
+    source.textContent='Motore V7 · rate lette per singolo mese · associazione conguagli verificata · '+file.name+(r.unresolved.length?' · '+r.unresolved.length+' casi da verificare':'');
     const v=document.querySelector('#results .card .muted');
-    if(v&&(v.textContent.includes('V2.8')||v.textContent.includes('Motore contabile V6')))v.textContent='Motore V7 · nome compatibile + stessa posizione + vicino sopra/sotto + nessuna contraddizione';
+    if(v&&(v.textContent.includes('V2.8')||v.textContent.includes('Motore contabile V6')))v.textContent='Motore V7 · rate da celle reali + nome compatibile + stessa posizione + vicino sopra/sotto + nessuna contraddizione';
     if(r.unresolved.length)console.warn('Casi da verificare V7:',r.unresolved);
   }catch(e){
     console.error(e);alert('Non riesco a leggere il file con il motore V7: '+e.message);
