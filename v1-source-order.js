@@ -62,14 +62,23 @@ function reorderPeople(people,wb){
   const units=sourceUnits(wb),used=new Set(),unmatched=[],filtered=[];
   (people||[]).forEach((p,originalIndex)=>{
     if(isSummaryName(p?.name))return;
-    const pc=canon(p?.name),candidates=[];
-    for(let i=0;i<units.length;i++){
-      if(used.has(i)||units[i].canon!==pc)continue;
-      candidates.push({i,u:units[i],score:structuralScore(p,units[i])});
+    const pc=canon(p?.name),explicitRow=Number(p?._sourceRow);let chosen=null;
+    if(Number.isFinite(explicitRow)){
+      const exactIndex=units.findIndex((u,i)=>!used.has(i)&&u.sourceRow===explicitRow&&u.canon===pc);
+      if(exactIndex>=0)chosen={i:exactIndex,u:units[exactIndex],score:1000000};
     }
-    candidates.sort((a,b)=>b.score-a.score||a.u.sourceOrder-b.u.sourceOrder);
-    if(candidates.length){
-      const chosen=candidates[0];used.add(chosen.i);
+    if(!chosen){
+      const candidates=[];
+      for(let i=0;i<units.length;i++){
+        if(used.has(i)||units[i].canon!==pc)continue;
+        candidates.push({i,u:units[i],score:structuralScore(p,units[i])});
+      }
+      candidates.sort((a,b)=>b.score-a.score||a.u.sourceOrder-b.u.sourceOrder);
+      if(candidates.length)chosen=candidates[0];
+    }
+    if(chosen){
+      used.add(chosen.i);
+      if(!p.sub&&chosen.u.sub)p.sub=chosen.u.sub;
       filtered.push({p,order:chosen.u.sourceOrder,originalIndex,sourceRow:chosen.u.sourceRow});
     }else{
       unmatched.push(p?.name||'');
