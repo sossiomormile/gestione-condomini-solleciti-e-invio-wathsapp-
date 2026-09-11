@@ -48,7 +48,7 @@ ok('conguaglio resolver and unit-identity guard markers are present');
 // real-file regression remains mandatory before authorization.
 mustContain('conguaglio-position-fix-v2.js', [
   "if(isFutureMonth(x.year,x.mese))continue;",
-  "const other=(p.items||[]).filter(x=>x.type!=='ordinary')",
+  "other=(p.items||[]).filter(x=>x.type!=='ordinary')",
   "p.items=[...ordinary,...other]"
 ]);
 ok('future-month filtering and preservation of non-ordinary items are structurally protected');
