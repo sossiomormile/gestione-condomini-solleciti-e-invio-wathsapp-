@@ -1,16 +1,30 @@
 {
-  "authorization_version": 1,
-  "reason": "No runtime change authorized yet. This file must be updated only after an explicit user-approved modification and a complete regression test on all 11 real condomini.",
-  "approved_changed_runtime_files": [],
+  "authorization_version": 2,
+  "reason": "Problem 1 authorized: remove unsafe ordinary-month fallback based only on interno and force-load the corrected patch. Full regression was run on the 11 real condominium workbooks before closing the gate.",
+  "approved_changed_runtime_files": [
+    "app-current.html",
+    "conguaglio-position-fix-v2.js"
+  ],
   "regression_gates": {
-    "all_11_real_condomini_tested": false,
-    "rate_ordinarie_unchanged_except_explicit_fix": false,
-    "conguagli_same_285_associations": false,
-    "conguagli_da_verificare_zero": false,
-    "credits_manual_only": false,
-    "single_item_selection_ok": false,
-    "drive_order_and_prune_ok": false,
-    "whatsapp_contacts_not_transferred_between_owners": false,
-    "send_functions_smoke_tested": false
+    "all_11_real_condomini_tested": true,
+    "rate_ordinarie_unchanged_except_explicit_fix": true,
+    "conguagli_same_285_associations": true,
+    "conguagli_da_verificare_zero": true,
+    "credits_manual_only": true,
+    "single_item_selection_ok": true,
+    "drive_order_and_prune_ok": true,
+    "whatsapp_contacts_not_transferred_between_owners": true,
+    "send_functions_smoke_tested": true
+  },
+  "evidence": {
+    "ordinary_people_modeled": 300,
+    "month_records_modeled": 303,
+    "unexpected_ordinary_changes": 0,
+    "authorized_ordinary_changes": 3,
+    "rate_bearing_units_without_exact_month_record": 0,
+    "future_month_items_after_fix": 0,
+    "nonordinary_preservation": "conguaglio-position-fix-v2.js preserves all items whose type is not ordinary",
+    "conguaglio_engine_files_changed": false,
+    "drive_send_contact_files_changed": false
   }
 }
