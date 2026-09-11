@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-11",
+  "scope": "11 bilanci reali della cartella Drive Condomini_APP",
+  "method": "Confronto dell'ordine ufficiale del foglio Incassi con la logica v1-source-order su tutte le righe ufficiali, simulando il precedente ordinamento scala/interno/nome.",
+  "total_official_incassi_rows": 355,
+  "exact_order_after_patch": 355,
+  "unmatched": 0,
+  "summary_rows_filtered": 3,
+  "condomini": [
+    {"name":"Parco Gardenia","official_rows":26,"exact_order":true,"unmatched":0,"summary_rows":[]},
+    {"name":"F.lli Caruso Via Lupoli","official_rows":24,"exact_order":true,"unmatched":0,"summary_rows":[]},
+    {"name":"F.lli Caruso C.so Vitt. Emanuele","official_rows":16,"exact_order":true,"unmatched":0,"summary_rows":[]},
+    {"name":"Di Lorenzo","official_rows":8,"exact_order":true,"unmatched":0,"summary_rows":[]},
+    {"name":"Parco Iris","official_rows":31,"exact_order":true,"unmatched":0,"summary_rows":[]},
+    {"name":"Parco San Nazario","official_rows":26,"exact_order":true,"unmatched":0,"summary_rows":[{"row":47,"label":"ANCORA DA INCASSARE"}]},
+    {"name":"Di.Be","official_rows":20,"exact_order":true,"unmatched":0,"summary_rows":[]},
+    {"name":"Demacoop","official_rows":44,"exact_order":true,"unmatched":0,"summary_rows":[]},
+    {"name":"Clanio 2","official_rows":30,"exact_order":true,"unmatched":0,"summary_rows":[]},
+    {"name":"Parco del Sole","official_rows":86,"exact_order":true,"unmatched":0,"summary_rows":[{"row":109,"label":"ANCORA DA INCASSARE"}]},
+    {"name":"Parco Pantani","official_rows":44,"exact_order":true,"unmatched":0,"summary_rows":[{"row":68,"label":"ANCORA DA INCASSARE"}]}
+  ],
+  "safety": {
+    "accounting_items_modified_by_order_patch": false,
+    "credits_modified_by_order_patch": false,
+    "persistent_unit_identity_uses_source_row": false,
+    "source_row_use": "temporary ordering clue only"
+  }
+}
