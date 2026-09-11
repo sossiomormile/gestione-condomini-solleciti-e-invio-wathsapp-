@@ -45,9 +45,22 @@ function analyzeV6(wb,fileName){
    const contradiction=(prevComparable&&!prevOk)||(nextComparable&&!nextOk);
    return {confirmed:prevOk||nextOk,contradiction,prevOk,nextOk};
  };
+ const levenshtein=(a,b)=>{const x=String(a||''),y=String(b||'');let prev=Array.from({length:y.length+1},(_,i)=>i);for(let i=1;i<=x.length;i++){const cur=[i];for(let j=1;j<=y.length;j++)cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(x[i-1]===y[j-1]?0:1));prev=cur}return prev[y.length]};
+ const typoCompatible=(a,b)=>{
+   const A=canonName(a).split(' ').filter(Boolean),B=canonName(b).split(' ').filter(Boolean);if(!A.length||!B.length)return false;
+   const shorter=A.length<=B.length?A:B,longer=A.length<=B.length?B:A,used=new Set();let exactish=0,fuzzy=0;
+   for(const t of shorter){let best=null;for(let j=0;j<longer.length;j++){if(used.has(j))continue;const u=longer[j];if(t===u||(t.length===1&&u.startsWith(t))||(u.length===1&&t.startsWith(u))){best={d:0,j};break}if(t.length>=6&&u.length>=6){const d=levenshtein(t,u);if(d<=2&&(!best||d<best.d))best={d,j}}}if(!best)return false;used.add(best.j);if(best.d===0)exactish++;else fuzzy++}
+   return fuzzy===1&&exactish>=1;
+ };
  const matchPerson=rec=>{
    const exact=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>exactName(rec.nominativo,z.x.name));
    if(exact.length===1)return {name:exact[0].x.name,reason:'nominativo coincidente in modo univoco'};
+
+   const compatible=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>nameCompatible(rec.nominativo,z.x.name));
+   if(compatible.length===1&&compatible[0].i===rec._position)return {name:compatible[0].x.name,reason:'nome univoco compatibile + stessa posizione'};
+
+   const typo=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>typoCompatible(rec.nominativo,z.x.name));
+   if(typo.length===1&&typo[0].i===rec._position)return {name:typo[0].x.name,reason:'piccola variante/refuso univoco + stessa posizione'};
 
    const target=ordinaryOrder[rec._position];
    if(target&&nameCompatible(rec.nominativo,target.name)){
@@ -55,15 +68,14 @@ function analyzeV6(wb,fileName){
      if(!ev.contradiction&&ev.confirmed)return {name:target.name,reason:'nome parziale + stessa posizione + vicino sopra/sotto confermato'};
    }
 
-   const compatible=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>nameCompatible(rec.nominativo,z.x.name));
    if(compatible.length===1){
      const cand=compatible[0],ev=neighborCheck(rec,cand.i);
-     if(cand.i===rec._position&&!ev.contradiction&&ev.confirmed)return {name:cand.x.name,reason:'nome parziale + stessa posizione + vicino sopra/sotto confermato'};
      if(cand.i!==rec._position)return {name:null,reason:`nome parziale compatibile ma posizione diversa (${cand.i+1} invece di ${rec._position+1})`};
      if(ev.contradiction)return {name:null,reason:'nome parziale e posizione coerenti ma vicino sopra/sotto in contraddizione'};
      return {name:null,reason:'nome parziale e posizione coerenti ma nessun vicino sopra/sotto conferma'};
    }
    if(compatible.length>1)return {name:null,reason:'nome compatibile con più condomini: associazione ambigua'};
+   if(typo.length>1)return {name:null,reason:'variante/refuso compatibile con più condomini: associazione ambigua'};
    if(exact.length>1)return {name:null,reason:'nominativo identico presente in più unità: serve conferma di posizione/vicini'};
    return {name:null,reason:'nominativo non compatibile con il condomino nella stessa posizione'};
  };
