@@ -22,15 +22,19 @@ function unitToken(p){
  return'UNIT';
 }
 function key(p){return[buildingName(),p?.name,p?.scala,p?.interno,p?.piano,unitToken(p)].map(norm).join('|')}
+function unitHistoryKey(p){return'condo_hist_v28_'+key(p)}
 function legacyIsUnambiguous(p){return currentList().filter(x=>sameLegacyUnit(x,p)).length===1}
 function readContacts(){try{return JSON.parse(localStorage.getItem(CONTACT_KEY)||'{}')}catch(e){return{}}}
 function writeContacts(all){localStorage.setItem(CONTACT_KEY,JSON.stringify(all||{}))}
 function getContact(p){
  const all=readContacts(),k=key(p);if(all[k])return all[k];
- const old=legacyContactKey(p);if(all[old]&&legacyIsUnambiguous(p)){all[k]={...all[old]};writeContacts(all);return all[k]}
+ const old=legacyContactKey(p);if(all[old]&&legacyIsUnambiguous(p))return all[old];
  return{};
 }
 function setContact(p,data){const all=readContacts(),k=key(p),prev=all[k]||{};all[k]={...prev,phone:String(data?.phone||''),email:String(data?.email||'')};writeContacts(all);p.phone=all[k].phone;p.email=all[k].email;return all[k]}
+function readHistoryKey(k){try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(e){return[]}}
+function getHistoryUnit(p){const k=unitHistoryKey(p);if(localStorage.getItem(k)!=null)return readHistoryKey(k);const old=legacyHistoryKey(p);return legacyIsUnambiguous(p)&&localStorage.getItem(old)!=null?readHistoryKey(old):[]}
+function addHistoryUnit(p,channel,amount){const k=unitHistoryKey(p),h=getHistoryUnit(p);h.unshift({ts:new Date().toISOString(),channel,amount});localStorage.setItem(k,JSON.stringify(h.slice(0,30)));try{renderPerson(p)}catch(e){}}
 function personFromInput(el){const body=el?.closest?.('.body');if(!body)return null;const m=String(body.id||'').match(/^p(\d+)$/);if(!m)return null;return currentList()[Number(m[1])]||null}
 function syncInputs(){
  for(const p of currentList()){
@@ -41,16 +45,11 @@ function syncInputs(){
  }
 }
 function patchHistory(){
- const newHistKey=p=>{
-  const k='condo_hist_v28_'+key(p),old=legacyHistoryKey(p);
-  try{if(localStorage.getItem(k)==null&&localStorage.getItem(old)!=null&&legacyIsUnambiguous(p))localStorage.setItem(k,localStorage.getItem(old))}catch(e){}
-  return k;
- };
- try{window.histKey=newHistKey;histKey=newHistKey}catch(e){window.histKey=newHistKey}
+ try{window.histKey=unitHistoryKey;histKey=unitHistoryKey}catch(e){window.histKey=unitHistoryKey}
+ try{window.getHistory=getHistoryUnit;getHistory=getHistoryUnit}catch(e){window.getHistory=getHistoryUnit}
+ try{window.addHistory=addHistoryUnit;addHistory=addHistoryUnit}catch(e){window.addHistory=addHistoryUnit}
 }
-function pendingPerson(){
- try{const d=JSON.parse(localStorage.getItem(PENDING_KEY)||'null');if(!d)return null;return currentList().find(p=>key(p)===String(d.key||''))||null}catch(e){return null}
-}
+function pendingPerson(){try{const d=JSON.parse(localStorage.getItem(PENDING_KEY)||'null');if(!d)return null;return currentList().find(p=>key(p)===String(d.key||''))||null}catch(e){return null}}
 function askSavePending(){
  const p=pendingPerson();if(!p)return;const saved=getContact(p);if(cleanPhone(saved.phone)){localStorage.removeItem(PENDING_KEY);return}
  setTimeout(()=>{
@@ -63,9 +62,9 @@ function installWhatsapp(){
  if(typeof calc!=='function'||typeof message!=='function')return;
  const fn=function(id){
   const p=currentList()[id];if(!p)return;const c=calc(p),box=document.getElementById('p'+id),input=box?.querySelector('.v5phone'),saved=getContact(p),typed=String(input?.value||'').trim(),raw=typed||String(saved.phone||'').trim(),phone=cleanPhone(raw),text=encodeURIComponent(message(p));
-  if(phone){setContact(p,{phone:raw,email:saved.email||''});try{addHistory(p,'WhatsApp · '+raw+' · apertura invio',c.net)}catch(e){}location.href='https://wa.me/'+phone+'?text='+text;return}
+  if(phone){setContact(p,{phone:raw,email:saved.email||''});try{addHistoryUnit(p,'WhatsApp · '+raw+' · apertura invio',c.net)}catch(e){}location.href='https://wa.me/'+phone+'?text='+text;return}
   try{localStorage.setItem(PENDING_KEY,JSON.stringify({key:key(p),ts:new Date().toISOString()}));localStorage.removeItem(OLD_PENDING_KEY)}catch(e){}
-  try{addHistory(p,'WhatsApp · selezione destinatario',c.net)}catch(e){}location.href='whatsapp://send?text='+text;
+  try{addHistoryUnit(p,'WhatsApp · selezione destinatario',c.net)}catch(e){}location.href='whatsapp://send?text='+text;
  };
  try{window.whatsapp=fn;whatsapp=fn}catch(e){window.whatsapp=fn}
 }
@@ -79,6 +78,6 @@ function setup(){
  document.addEventListener('visibilitychange',onReturn);window.addEventListener('pageshow',askSavePending);
  const obs=new MutationObserver(()=>setTimeout(patchAll,0));obs.observe(document.body,{childList:true,subtree:true});patchAll();askSavePending();
 }
-window.condoUnitContactIdentityV1={key,legacyContactKey,legacyHistoryKey,legacyIsUnambiguous,getContact,setContact,unitToken,syncInputs,installWhatsapp};
+window.condoUnitContactIdentityV1={key,unitHistoryKey,legacyContactKey,legacyHistoryKey,legacyIsUnambiguous,getContact,setContact,getHistoryUnit,addHistoryUnit,unitToken,syncInputs,installWhatsapp};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();
 })();
