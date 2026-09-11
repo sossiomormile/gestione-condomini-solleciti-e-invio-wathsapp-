@@ -21,6 +21,12 @@ function parseOrdinary(rows){
  rows.slice(hi+1).forEach((r,offset)=>{const name=String(val(r,namec)??'').trim();if(!name||nrm(name).startsWith('TOTALE')||nrm(name).startsWith('SCALA'))return;const rata=num(val(r,ratac)),totalDue=num(val(r,duec)),balance=num(val(r,balanc));if(rata<=0&&totalDue<=0&&Math.abs(balance)<=.01)return;const position=seq++;const monthlyPaid=mcols.reduce((s,[c])=>s+num(val(r,c)),0),indDue=num(val(r,indc)),indPaid=num(val(r,indpaid)),monthlyDue=totalDue>0?Math.max(0,totalDue-indDue):Math.max(0,rata*12);if(rata>0&&Math.abs(monthlyDue-rata*12)>Math.max(2,.03*Math.max(monthlyDue,1)))warns.push(`${name}: quota mensile x12 non coincide con quota ordinaria`);let ordinaryBalance=Math.max(0,monthlyDue-monthlyPaid),individualBalance=Math.max(0,indDue-indPaid),calc=ordinaryBalance+individualBalance;if(balance>0&&Math.abs(calc-balance)>2){warns.push(`${name}: saldo contabile diverso dal ricalcolo`);const diff=balance-calc;if(diff>0)individualBalance+=diff}let paidPool=Math.max(0,monthlyPaid),unpaid=[];for(const [c,mn] of mcols){const q=rata>0?rata:(mcols.length?monthlyDue/mcols.length:0),covered=Math.min(q,paidPool);paidPool-=covered;const rem=Math.max(0,q-covered);if(rem>.01)unpaid.push({mese:mn,importo:round2(rem)})}const excess=Math.max(0,monthlyPaid-monthlyDue)+Math.max(0,indPaid-indDue)+Math.max(0,-balance);out[name]={ordinario:round2(ordinaryBalance),rate_scoperte:unpaid,spese_individuali:round2(individualBalance),credito:round2(excess),interno:String(val(r,intc)??''),scala:String(val(r,scalac)??''),piano:String(val(r,pianoc)??''),_position:position,_row:hi+1+offset};});
  return [out,warns]
 }
+function parseIncassiRegistry(rows){
+ const hi=findHeader(rows);if(hi==null)return {};
+ const H=effectiveHeaders(rows,hi),namec=colExact(H,'NOMINATIVO','CONDOMINO'),ratac=colExact(H,'RATA'),subc=colExact(H,'SUB'),intc=colExact(H,'INT','INT.','INTERNO'),scalac=colExact(H,'SCALA','S'),pianoc=colExact(H,'P','PIANO'),indc=colContains(H,'SPESE INDIVIDUALI','SPESE INDIVUALI'),indpaid=colExact(H,'RISCOSSE','RISCOSSIONE'),duec=colContains(H,'TOTALE ANNUO DA INCASSARE','TOTALE PERIODO DA INCASSARE'),balanc=colContains(H,'TOTALE ANNUO ANCORA DA INCASSARE','TOTALE PERIODO ANCORA DA INCASSARE'),mcols=monthCols(H),out={};let seq=0;
+ rows.slice(hi+1).forEach((r,offset)=>{const name=String(val(r,namec)??'').trim(),nn=nrm(name);if(!name||nn.startsWith('TOTALE')||nn.startsWith('SCALA')||nn==='CONDOMINO'||nn==='NOMINATIVO')return;const rata=num(val(r,ratac)),totalDue=num(val(r,duec)),balance=num(val(r,balanc)),indDue=num(val(r,indc)),indPaid=num(val(r,indpaid)),sub=String(val(r,subc)??'').trim(),interno=String(val(r,intc)??'').trim(),scala=String(val(r,scalac)??'').trim(),piano=String(val(r,pianoc)??'').trim(),hasMonthData=mcols.some(([c])=>{const x=val(r,c);return x!==null&&x!==undefined&&x!==''}),hasStructure=!!(sub||interno||scala||piano||rata||totalDue||Math.abs(balance)>.01||indDue||indPaid||hasMonthData);if(!hasStructure)return;if(!out[name])out[name]={interno,scala,piano,sub,_position:seq,_row:hi+1+offset};seq++;});
+ return out
+}
 function parseBalanceSheet(rows){
  const hi=findHeader(rows);if(hi==null)return [[], 'intestazione non riconosciuta'];
  const H=effectiveHeaders(rows,hi),namec=colExact(H,'NOMINATIVO','CONDOMINO'),intc=colExact(H,'INT','INT.','INTERNO'),scalac=colExact(H,'SCALA'),pianoc=colExact(H,'P','PIANO'),totaldue=colContains(H,'TOTALE ANNUO DA INCASSARE','TOTALE PERIODO DA INCASSARE','TOTALE DA INCASSARE'),balancec=colContains(H,'TOTALE ANNUO ANCORA DA INCASSARE','TOTALE PERIODO ANCORA DA INCASSARE','ANCORA DA INCASSARE','DA INCASSARE','SALDO','RESIDUO'),duec=colContains(H,'CONGUAGLIO','IMPORTO','DA VERSARE','RATA','TAB. A'),paidc=colExact(H,'PAGATO','VERSATO','INCASSATO'),reimbc=colExact(H,'RIMBORSATO'),mcols=monthCols(H),allPeople=[],out=[];let unresolved=false;
@@ -33,10 +39,11 @@ function analyzeV6(wb,fileName){
  const sheets=workbookSheets(wb),[condo0,period,dates,frontKey]=frontInfo(sheets),inc=Object.keys(sheets).find(s=>nrm(s).startsWith('INCASSI '))||Object.keys(sheets).find(s=>nrm(s).includes('INCASSI'));
  if(!inc)throw new Error('Non trovo un foglio Incassi nel bilancio. Fogli presenti: '+Object.keys(sheets).join(' | '));
  const [ordinary,warns]=parseOrdinary(sheets[inc]);if(!Object.keys(ordinary).length)throw new Error('Il foglio '+inc+' è stato trovato ma non riesco a riconoscere l’intestazione delle quote.');
+ const incassiRegistry=parseIncassiRegistry(sheets[inc]);
  const people={},ordinaryMeta={};
  const ensure=p=>people[p]||(people[p]={ordinario:0,rate_scoperte:[],conguaglio:0,spese_individuali:0,straordinari:[],crediti:[]});
- for(const [p,d] of Object.entries(ordinary)){Object.assign(ensure(p),{ordinario:d.ordinario,rate_scoperte:d.rate_scoperte,spese_individuali:d.spese_individuali});ordinaryMeta[p]=d;if(d.credito>.01)ensure(p).crediti.push({label:'Eccedenza / credito da incassi ordinari',amount:d.credito})}
- const ordinaryOrder=Object.entries(ordinaryMeta).sort((a,b)=>a[1]._position-b[1]._position).map(([name,meta])=>({name,...meta}));
+ for(const [p,d] of Object.entries(ordinary)){Object.assign(ensure(p),{ordinario:d.ordinario,rate_scoperte:d.rate_scoperte,spese_individuali:d.spese_individuali});ordinaryMeta[p]=d;if(!incassiRegistry[p])incassiRegistry[p]={interno:d.interno||'',scala:d.scala||'',piano:d.piano||'',sub:'',_position:d._position,_row:d._row};if(d.credito>.01)ensure(p).crediti.push({label:'Eccedenza / credito da incassi ordinari',amount:d.credito})}
+ const ordinaryOrder=Object.entries(incassiRegistry).sort((a,b)=>a[1]._position-b[1]._position).map(([name,meta])=>({name,...meta}));
  const exactName=(a,b)=>{const x=canonName(a),y=canonName(b);return !!(x&&y&&x===y)};
  const neighborCheck=(rec,idx)=>{
    const prevTarget=idx>0?ordinaryOrder[idx-1]:null,nextTarget=idx<ordinaryOrder.length-1?ordinaryOrder[idx+1]:null;
@@ -102,7 +109,7 @@ function analyzeV6(wb,fileName){
  }
  const currentPeople=[];
  for(const [p,d] of Object.entries(people)){
-   const md=ordinaryMeta[p]||{},items=[];
+   const md=ordinaryMeta[p]||incassiRegistry[p]||{},items=[];
    (d.rate_scoperte||[]).forEach(r=>items.push({type:'ordinary',label:r.mese,amount:round2(r.importo),selected:true}));
    if(d.conguaglio>.01)items.push({type:'cong',label:'Conguaglio a debito',amount:round2(d.conguaglio),selected:true});
    if(d.spese_individuali>.01)items.push({type:'extra',label:'Spese individuali',amount:round2(d.spese_individuali),selected:true});
