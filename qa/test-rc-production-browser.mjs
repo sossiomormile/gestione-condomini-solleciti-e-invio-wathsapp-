@@ -64,21 +64,9 @@ try{
   const tx=await frame.evaluate(s=>{
     const api=window.condoDriveSyncV3;
     api.beginFullRefreshTransaction();
-    const during={
-      archive:localStorage.getItem('condo_archive_v5'),
-      sync:localStorage.getItem('condo_drive_sync_state_v7'),
-      update:localStorage.getItem('condo_last_update_v5'),
-      contacts:localStorage.getItem('condo_contacts_v5'),
-      hist:localStorage.getItem('condo_hist_v28_sim'),cfg:localStorage.getItem('condo_cfg_v28_sim'),
-      tx:!!localStorage.getItem('condo_drive_full_refresh_tx_v3')
-    };
+    const during={archive:localStorage.getItem('condo_archive_v5'),sync:localStorage.getItem('condo_drive_sync_state_v7'),update:localStorage.getItem('condo_last_update_v5'),contacts:localStorage.getItem('condo_contacts_v5'),hist:localStorage.getItem('condo_hist_v28_sim'),cfg:localStorage.getItem('condo_cfg_v28_sim'),tx:!!localStorage.getItem('condo_drive_full_refresh_tx_v3')};
     api.rollbackFullRefreshTransaction();
-    const after={
-      archive:localStorage.getItem('condo_archive_v5'),sync:localStorage.getItem('condo_drive_sync_state_v7'),
-      update:localStorage.getItem('condo_last_update_v5'),contacts:localStorage.getItem('condo_contacts_v5'),
-      hist:localStorage.getItem('condo_hist_v28_sim'),cfg:localStorage.getItem('condo_cfg_v28_sim'),
-      tx:!!localStorage.getItem('condo_drive_full_refresh_tx_v3')
-    };
+    const after={archive:localStorage.getItem('condo_archive_v5'),sync:localStorage.getItem('condo_drive_sync_state_v7'),update:localStorage.getItem('condo_last_update_v5'),contacts:localStorage.getItem('condo_contacts_v5'),hist:localStorage.getItem('condo_hist_v28_sim'),cfg:localStorage.getItem('condo_cfg_v28_sim'),tx:!!localStorage.getItem('condo_drive_full_refresh_tx_v3')};
     return {during,after};
   },sent);
   if(tx.during.archive!=='{"condomini":{}}'||tx.during.sync!==null||tx.during.update!==null||!tx.during.tx)fail('transazione AGGIORNA: stato temporaneo inatteso');
@@ -90,18 +78,31 @@ try{
   await page.waitForFunction(()=>document.querySelector('#boot')&&getComputedStyle(document.querySelector('#boot')).display==='none',{timeout:60000});
   const frame2=page.frames().find(f=>f.url().includes('legacy-v28.html'));
   await frame2.waitForFunction(()=>!!window.condoDriveSyncV3,{timeout:60000});
-  const recovery=await frame2.evaluate(s=>({
-    archive:localStorage.getItem('condo_archive_v5')===s.archive,
-    sync:localStorage.getItem('condo_drive_sync_state_v7')===s.sync,
-    update:localStorage.getItem('condo_last_update_v5')===s.update,
+  const recovery=await frame2.evaluate(s=>({archive:localStorage.getItem('condo_archive_v5')===s.archive,sync:localStorage.getItem('condo_drive_sync_state_v7')===s.sync,update:localStorage.getItem('condo_last_update_v5')===s.update,contacts:localStorage.getItem('condo_contacts_v5')===s.contacts,hist:localStorage.getItem('condo_hist_v28_sim')===s.hist,cfg:localStorage.getItem('condo_cfg_v28_sim')===s.cfg,tx:!localStorage.getItem('condo_drive_full_refresh_tx_v3')}),sent);
+  for(const [k,v] of Object.entries(recovery))if(v!==true)fail('recupero aggiornamento interrotto: '+k);
+
+  const indexResponse=await page.goto(base+'/index.html',{waitUntil:'domcontentloaded',timeout:30000});
+  if(!indexResponse?.ok())fail('RC index non raggiungibile: HTTP '+indexResponse?.status());
+  await page.waitForFunction(()=>!!window.condoConguaglioVariantTotalFixV4&&!!window.condoDriveSyncV3&&!!window.condoDeepCheckV2,{timeout:60000});
+  const indexState=await page.evaluate(s=>({
+    title:document.title==='Condominio_App 1.0',
     contacts:localStorage.getItem('condo_contacts_v5')===s.contacts,
     hist:localStorage.getItem('condo_hist_v28_sim')===s.hist,
     cfg:localStorage.getItem('condo_cfg_v28_sim')===s.cfg,
-    tx:!localStorage.getItem('condo_drive_full_refresh_tx_v3')
+    archive:localStorage.getItem('condo_archive_v5')===s.archive,
+    sync:localStorage.getItem('condo_drive_sync_state_v7')===s.sync,
+    update:localStorage.getItem('condo_last_update_v5')===s.update,
+    noTx:!localStorage.getItem('condo_drive_full_refresh_tx_v3'),
+    v4:!!window.condoConguaglioVariantTotalFixV4,
+    driveV3:!!window.condoDriveSyncV3,
+    noTestBadge:!/TEST V3|TEST V4|V3\+V4/i.test(document.body.innerText||''),
+    hasUpdate:/AGGIORNA/i.test(document.body.innerText||''),
+    bodyWidth:document.documentElement.scrollWidth,viewport:window.innerWidth
   }),sent);
-  for(const [k,v] of Object.entries(recovery))if(v!==true)fail('recupero aggiornamento interrotto: '+k);
+  for(const [k,v] of Object.entries(indexState))if(!['bodyWidth','viewport'].includes(k)&&v!==true)fail('index produzione: controllo non superato: '+k);
+  if(indexState.bodyWidth>indexState.viewport+2)fail('index produzione: overflow orizzontale mobile');
 
   if(failed.length)fail('richieste fallite: '+failed.join(' | '));
   if(pageErrors.length)fail('errori JavaScript browser: '+pageErrors.join(' | '));
-  console.log('RC PRODUCTION SIMULATION PASSED',JSON.stringify({startup,transactionRollback:true,interruptedRecovery:true,protectedData:true,v4:true,driveV3:true}));
+  console.log('RC PRODUCTION SIMULATION PASSED',JSON.stringify({startup,transactionRollback:true,interruptedRecovery:true,indexProductionPath:indexState,protectedData:true,v4:true,driveV3:true}));
 } finally { await browser.close(); }
