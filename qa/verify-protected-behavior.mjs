@@ -13,12 +13,13 @@ const appCurrent=read('app-current.html');
 const ordered=[
  'engine-v6.js?v=20260911-conguagli5',
  'unit-identity-fix-v1.js?v=20260911-unit2',
- 'conguaglio-position-fix-v2.js?v=20260911-rates4',
+ 'conguaglio-position-fix-v2.js?v=20260912-multiunit1',
+ 'duplicate-unit-rebuild-v2.js?v=20260912-dupunit2',
  'v1-source-order.js?v=20260911-order1',
  'v1-focus-ordinary-conguagli.js?v=20260911-v1focus1',
  'folder-name-fix-v1.js?v=20260911-folder2',
  'whatsapp-v6.js?v=20260909h',
- 'data-safety-v6.js?v=20260909h',
+ 'data-safety-v6.js?v=20260912-androidloop1',
  'unit-contact-identity-v1.js?v=20260911-contact2',
  'v1-self-check.js?v=20260911-selfcheck1',
  'v1-self-check-cents-v2.js?v=20260911-cents1',
@@ -27,13 +28,16 @@ const ordered=[
 ];
 let last=-1;for(const marker of ordered){const i=appCurrent.indexOf(marker);if(i<0)fail(`app-current.html missing protected script ${marker}`);if(i<=last)fail(`app-current.html changed protected script order around ${marker}`);last=i}
 if(appCurrent.includes('drive-sync-v1.js')||appCurrent.includes('drive-sync-v2.js'))fail('test entrypoint loads an obsolete Drive sync runtime');
-if(/qa\//i.test(appCurrent))fail('QA files must never be loaded by the runtime app');else ok('entrypoint keeps protected accounting chain plus folder identity, unit contacts, deep self-check and Drive V3');
+if(/qa\//i.test(appCurrent))fail('QA files must never be loaded by the runtime app');else ok('entrypoint keeps protected accounting chain plus duplicate-unit rebuild, folder identity, unit contacts, deep self-check and Drive V3');
 
 mustContain('engine-v6.js',["const unresolved=[];","if(!match.name){unresolved.push","credits=(d.crediti||[]).filter(c=>c.amount>.01).map(c=>({label:c.label,amount:round2(c.amount),selected:false}))","currentPeople.sort((a,b)=>String(a.scala).localeCompare(String(b.scala),'it',{numeric:true})"]);
 mustContain('unit-identity-fix-v1.js',["if(!(baseline.unresolved||[]).length){window.condoUnitIdentityFixV1.lastResolved=[];return baseline}","if(!ev.conflicts.length&&ev.score>=2)","if(best.length!==1)continue;"]);ok('conguaglio resolver and unit-identity guard markers are present');
 
 mustContain('conguaglio-position-fix-v2.js',["if(isFutureMonth(x.year,x.mese))continue;","function unitEvidence(p,r)","function chooseRecordIndex(p,people,pi,records,used)","if(!compatible.length)return -1;","const idx=chooseRecordIndex(p,people,pi,records,used);","if(knownIdentityCount(p)>=2&&best.length>1","other=(p.items||[]).filter(x=>x.type!=='ordinary')","p.items=[...ordinary,...other]","if(!p.sub&&rec.sub)p.sub=rec.sub;p._sourceRow=rec.sourceRow"]);
 mustNotContain('conguaglio-position-fix-v2.js',["const idx=records.findIndex((r,i)=>!used.has(i)&&canon(r.name)===canon(p.name))","idx<0&&p.interno","String(r.interno)===String(p.interno)&&(!p.scala||!r.scala||nrm(r.scala)===nrm(p.scala))"]);ok('future-month filtering and unit-aware ordinary matching remain protected; name-only duplicate matching is forbidden');
+
+mustContain('duplicate-unit-rebuild-v2.js',["function sourceUnits(wb,fileName)","ordinaryCredit=round2", "function matchCongRow(rec,rows,ri,units)","positionConfirmed(rows,ri,units,rec.position)","confidence.set(rec.canon,false)","const expected=srcGroup.filter", "_sourceRow:u.sourceRow,_sourceOrder:u.order", "window.condoDuplicateUnitRebuildV2="]);
+mustNotContain('duplicate-unit-rebuild-v2.js',["candidates[0].i; // guess","appGroup.length===expected.length)continue"]);ok('duplicate-owner units are rebuilt from official Incassi identity; ambiguous conguagli block instead of guessing');
 
 mustContain('v1-source-order.js',["const SUMMARY_LABELS=new Set([","if(isSummaryName(p?.name))return;","current=reorderPeople(current,wb)","x.p._sourceOrder=x.order","const pc=canon(p?.name),explicitRow=Number(p?._sourceRow)","window.condoV1SourceOrder={sourceUnits,reorderPeople,isSummaryName,lastAudit:null}"]);
 mustNotContain('v1-source-order.js',["p.items=","p.credits="]);ok('source-order patch only identifies/reorders units and filters summary rows');
@@ -57,6 +61,7 @@ mustNotContain('drive-sync-v3.js',["state[key]===currentSig"]);ok('Drive V3 full
 
 mustContain('whatsapp-v6.js',["input.value='';","p.phone='';","location.href='whatsapp://send?text='+text","const k=contactKeyLocal(p);"]);ok('legacy WhatsApp ownership guard remains, then unit-contact patch strengthens duplicate/SUB isolation');
 
-let changed=[];try{const out=execFileSync('git',['diff','--name-only',`${baseline.baseline_commit}..HEAD`,'--',...baseline.protected_runtime_files],{encoding:'utf8'});changed=out.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).sort()}catch(e){fail('Unable to calculate protected runtime diff from baseline commit: '+e.message)}
+const protectedNow=[...new Set([...(baseline.protected_runtime_files||[]),'duplicate-unit-rebuild-v2.js'])];
+let changed=[];try{const out=execFileSync('git',['diff','--name-only',`${baseline.baseline_commit}..HEAD`,'--',...protectedNow],{encoding:'utf8'});changed=out.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).sort()}catch(e){fail('Unable to calculate protected runtime diff from baseline commit: '+e.message)}
 if(!changed.length)ok('no protected runtime file changed from frozen baseline');else{console.log('Protected runtime changes detected:',changed.join(', '));const approved=[...(auth.approved_changed_runtime_files||[])].sort();if(JSON.stringify(changed)!==JSON.stringify(approved))fail('protected runtime changes are not exactly listed in qa/CHANGE_AUTHORIZATION.json');const failedGates=Object.entries(auth.regression_gates||{}).filter(([,v])=>v!==true).map(([k])=>k);if(failedGates.length)fail('runtime change authorization incomplete; gates still false: '+failedGates.join(', '));else ok('protected runtime changes have explicit complete regression authorization')}
 if(process.exitCode)process.exit(process.exitCode);console.log('\nQA LOCK PASSED');
