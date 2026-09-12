@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Autorizzazione TEST V3</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#f3f5f8;color:#172033;margin:0;padding:22px}main{max-width:680px;margin:auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 14px #0001}button{width:100%;border:0;border-radius:12px;padding:15px;background:#123c69;color:#fff;font-size:17px;font-weight:800}.ok{color:#067647}.bad{color:#b42318}.diag{font-size:13px;color:#667085;overflow-wrap:anywhere}</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+<main>
+<h2>TEST V3 · autorizzazione Google Drive</h2>
+<p>Questa pagina serve solo al collaudo. Dopo l'autorizzazione apre automaticamente la TEST V3 nella stessa scheda.</p>
+<div class="diag" id="diag"></div>
+<p id="status">Pronto.</p>
+<button id="go">AUTORIZZA E APRI TEST V3</button>
+</main>
+<script>
+(()=>{
+'use strict';
+const CLIENT_ID='697823317404-01qj6tn6qcrklsb251cdup5f7imhaoq3.apps.googleusercontent.com';
+const SCOPE='https://www.googleapis.com/auth/drive.readonly';
+const TOKEN_KEY='condo_google_token_v1';
+const diag=document.getElementById('diag'),status=document.getElementById('status'),btn=document.getElementById('go');
+diag.textContent='origin: '+location.origin+' · top-level: '+(window.top===window)+' · protocollo: '+location.protocol;
+function fail(msg){status.className='bad';status.textContent=msg;btn.disabled=false;btn.textContent='RIPROVA AUTORIZZAZIONE';}
+btn.addEventListener('click',()=>{
+ btn.disabled=true;btn.textContent='AUTORIZZAZIONE…';status.className='';status.textContent='Apertura accesso Google…';
+ try{
+  if(!window.google?.accounts?.oauth2)return fail('Google Identity Services non è ancora caricato. Attendi qualche secondo e riprova.');
+  const tc=google.accounts.oauth2.initTokenClient({
+   client_id:CLIENT_ID,
+   scope:SCOPE,
+   include_granted_scopes:true,
+   callback:r=>{
+    if(r.error)return fail('Google OAuth: '+r.error);
+    const token=r.access_token||'';if(!token)return fail('Google non ha restituito il token.');
+    const expiresAt=Date.now()+Math.max(60,Number(r.expires_in)||3600)*1000;
+    sessionStorage.setItem(TOKEN_KEY,JSON.stringify({token,expiresAt}));
+    status.className='ok';status.textContent='Autorizzazione riuscita. Apertura TEST V3…';
+    location.replace('test-v3.html?v=20260912-livegate-auth1');
+   },
+   error_callback:e=>fail('Errore apertura OAuth: '+String(e?.type||e?.message||e))
+  });
+  tc.requestAccessToken({prompt:'consent'});
+ }catch(e){fail('Errore TEST OAuth: '+String(e?.message||e));}
+});
+})();
+</script>
+</body>
+</html>
