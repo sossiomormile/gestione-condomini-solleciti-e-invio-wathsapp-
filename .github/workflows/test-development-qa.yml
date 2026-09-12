@@ -59,6 +59,8 @@ jobs:
         run: node qa/test-convocazioni-module-v1.mjs
       - name: Test convocazioni original-template V2
         run: node qa/test-convocazioni-template-v2.mjs
+      - name: Test convocazioni source routing V2.1
+        run: node qa/test-convocazioni-sourcefix-v21.mjs
 
   android-smoke:
     runs-on: ubuntu-latest
