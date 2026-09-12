@@ -1,13 +1,13 @@
 <!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Condominio_App 1.0 TEST</title></head><body><script>
 const DB='condo_persistent_v1',STORE='kv',KEYS=['condo_archive_v5','condo_last_update_v5','condo_contacts_v5'];
-const TEST_SHA='5abfd2817dad0f251edae64e207b71c4a3d221cd';
+const TEST_SHA='d63c4d2c764249520ca7c01ca42e6e81353e3f58';
 const TEST_BASE='https://cdn.jsdelivr.net/gh/sossiomormile/gestione-condomini-solleciti-e-invio-wathsapp-@'+TEST_SHA+'/';
 function openDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE)};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function restore(){try{const db=await openDb();const tx=db.transaction(STORE,'readonly'),st=tx.objectStore(STORE);for(const k of KEYS){if(localStorage.getItem(k))continue;const v=await new Promise(res=>{const q=st.get(k);q.onsuccess=()=>res(q.result||'');q.onerror=()=>res('')});if(v)localStorage.setItem(k,v)}db.close()}catch(e){}}
 function boot(){fetch('legacy-v28.html?v=20260908g').then(r=>{if(!r.ok)throw new Error('Errore caricamento programma');return r.text()}).then(t=>{
-const names=['archive-dropdown-v1.js','priority-fix.js','app-v5.js','persistent-cache-v1.js','engine-v6.js','unit-identity-fix-v1.js','conguaglio-position-fix-v2.js','duplicate-unit-rebuild-v2.js','duplicate-conguaglio-position-fix-v3.js','duplicate-conguaglio-variant-total-fix-v4.js','ordinary-cent-guard-v1.js','v1-source-order.js','v1-focus-ordinary-conguagli.js','folder-name-fix-v1.js','whatsapp-v6.js','data-safety-v6.js','unit-contact-identity-v1.js','v1-self-check.js','v1-self-check-unresolved-v3.js','v1-self-check-cents-v2.js','v1-deep-check-v2.js','v1-cent-consistency-v1.js','drive-sync-v3.js','version-label-v1.js'];
-const badge='<div style="position:fixed;left:8px;bottom:8px;z-index:99999;background:#8b1e1e;color:#fff;padding:6px 9px;border-radius:8px;font:700 11px system-ui">TEST · '+TEST_SHA.slice(0,8)+'</div>';
-const patch=badge+names.map(n=>'<scr'+'ipt src="'+TEST_BASE+n+'?v=20260912-newtest"></scr'+'ipt>').join('');
+const names=['archive-dropdown-v1.js','priority-fix.js','app-v5.js','persistent-cache-v1.js','engine-v6.js','unit-identity-fix-v1.js','conguaglio-position-fix-v2.js','duplicate-unit-rebuild-v2.js','duplicate-conguaglio-position-fix-v3.js','duplicate-conguaglio-variant-total-fix-v4.js','ordinary-cent-guard-v1.js','v1-source-order.js','v1-focus-ordinary-conguagli.js','folder-name-fix-v1.js','whatsapp-v6.js','data-safety-v6.js','unit-contact-identity-v1.js','v1-self-check.js','v1-self-check-unresolved-v3.js','v1-self-check-cents-v2.js','v1-deep-check-v2.js','v1-cent-consistency-v1.js','drive-sync-v3.js','pdf-resoconto-v1.js','version-label-v1.js'];
+const badge='<div style="position:fixed;left:8px;bottom:8px;z-index:99999;background:#8b1e1e;color:#fff;padding:6px 9px;border-radius:8px;font:700 11px system-ui">TEST PDF · '+TEST_SHA.slice(0,8)+'</div>';
+const patch=badge+names.map(n=>'<scr'+'ipt src="'+TEST_BASE+n+'?v=20260912-pdfsummary1"></scr'+'ipt>').join('');
 t=t.replace('</body>',patch+'</body>');document.open();document.write(t);document.close()}).catch(e=>{document.body.innerHTML='<div style="font-family:system-ui;padding:20px">Impossibile avviare la versione TEST: '+e.message+'</div>'})}
 restore().finally(boot);
 </script></body></html>
