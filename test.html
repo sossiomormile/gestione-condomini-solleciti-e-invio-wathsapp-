@@ -1,6 +1,6 @@
 <!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Condominio_App 1.0 TEST</title></head><body><script>
 const DB='condo_persistent_v1',STORE='kv',KEYS=['condo_archive_v5','condo_last_update_v5','condo_contacts_v5'];
-const TEST_SHA='7f4923c277c8d43c2666c028e07e4421305f6a41';
+const TEST_SHA='5abfd2817dad0f251edae64e207b71c4a3d221cd';
 const TEST_BASE='https://cdn.jsdelivr.net/gh/sossiomormile/gestione-condomini-solleciti-e-invio-wathsapp-@'+TEST_SHA+'/';
 function openDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE)};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function restore(){try{const db=await openDb();const tx=db.transaction(STORE,'readonly'),st=tx.objectStore(STORE);for(const k of KEYS){if(localStorage.getItem(k))continue;const v=await new Promise(res=>{const q=st.get(k);q.onsuccess=()=>res(q.result||'');q.onerror=()=>res('')});if(v)localStorage.setItem(k,v)}db.close()}catch(e){}}
