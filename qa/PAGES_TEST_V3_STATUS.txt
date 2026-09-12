@@ -1,0 +1,1 @@
+Pubblicazione richiesta su main senza modifica di index.html. Verificare il link pubblico dopo il deployment GitHub Pages.
