@@ -3,7 +3,8 @@
 const MONTH_ALIASES={GEN:'Gennaio',GENNAIO:'Gennaio',FEB:'Febbraio',FEBBRAIO:'Febbraio',MAR:'Marzo',MARZO:'Marzo',APR:'Aprile',APRILE:'Aprile',MAG:'Maggio',MAGGIO:'Maggio',GIU:'Giugno',GIUGNO:'Giugno',LUG:'Luglio',LUGLIO:'Luglio',AGO:'Agosto',AGOSTO:'Agosto',SET:'Settembre',SETT:'Settembre',SETTEMBRE:'Settembre',OTT:'Ottobre',OTTOBRE:'Ottobre',NOV:'Novembre',NOVEMBRE:'Novembre',DIC:'Dicembre',DICEMBRE:'Dicembre'};
 const IGNORE_SHEETS=['MOROSI','RATE INSOLUTE','FRONTESPIZIO','FROTESPIZIO','RENDICONTO','CONTO ECONOMICO','STATO PATRIMONIALE','PRIMA NOTA','MILLESIMI','RIPARTO','PREVENTIVO','RESOCONTO','FATTURE NON PAGATE'];
 function nrm(x){return String(x??'').trim().replace(/\s+/g,' ').toUpperCase()}
-function canonName(x){return nrm(x).replace(/[^A-Z0-9]+/g,' ').trim()}
+function canonName(x){return nrm(x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,' ').trim()}
+function nameCompatible(a,b){const x=canonName(a),y=canonName(b);if(!x||!y)return false;if(x===y)return true;if(x.includes(y)||y.includes(x))return true;const xt=x.split(' ').filter(Boolean),yt=y.split(' ').filter(Boolean);if(!xt.length||!yt.length)return false;const shorter=xt.length<=yt.length?xt:yt,longer=xt.length<=yt.length?yt:xt;return shorter.every(t=>longer.some(u=>u===t||(t.length===1&&u.startsWith(t))||(u.length===1&&t.startsWith(u))))}
 function num(x){if(typeof x==='number'&&Number.isFinite(x))return x;if(typeof x==='string'){let v=x.trim();if(!v)return 0;if(v.includes(',')&&v.includes('.'))v=v.replace(/\./g,'').replace(',','.');else if(v.includes(','))v=v.replace(',','.');const z=parseFloat(v);return Number.isFinite(z)?z:0}return 0}
 const round2=x=>Math.round((Number(x)||0)*100)/100;
 function val(r,i){return i!=null&&i<r.length?r[i]:null}
@@ -13,16 +14,116 @@ function colExact(H,...names){const hs=H.map(nrm);for(const name of names){const
 function colContains(H,...terms){const hs=H.map(nrm);for(const t0 of terms){const t=nrm(t0);for(let i=0;i<hs.length;i++)if(hs[i].includes(t))return i}return null}
 function monthCols(H){const out=[];H.forEach((h,i)=>{const k=nrm(h);if(MONTH_ALIASES[k])out.push([i,MONTH_ALIASES[k]])});return out.length>12?out.slice(-12):out}
 function frontInfo(sheets){const key=Object.keys(sheets).find(k=>/FRO?NT?ESPIZIO/i.test(k))||'';const rows=sheets[key]||[],vals=rows.flat().filter(x=>x!==null&&x!==undefined&&x!=='').map(String);let condo='';for(const v of vals){if(/CONDOMINIO/i.test(v)){condo=v.replace(/CONDOMINIO/i,'').replace(/^[ \"-]+|[ \"-]+$/g,'').trim();if(condo)break}}if(!condo&&vals.length)condo=vals[0].replace(/^[ \"-]+|[ \"-]+$/g,'').trim();let period='Non rilevato',dates='';for(const v of vals){const m=v.match(/(?:RENDICONTO|BILANCIO)\s+CONSUNTIVO\s+(\d{4})(?:\s*[-/]\s*(\d{4}))?/i);if(m){period=m[1]+(m[2]?'-'+m[2]:'');break}}for(const v of vals){if(/\d{2}\/\d{2}\/\d{4}\s*-\s*\d{2}\/\d{2}\/\d{4}/.test(v)){dates=v;break}}return [condo,period,dates,key]}
-function parseOrdinary(rows){const hi=findHeader(rows);if(hi==null)return [{},['Intestazione ordinario non riconosciuta']];const H=effectiveHeaders(rows,hi),namec=colExact(H,'NOMINATIVO','CONDOMINO'),ratac=colExact(H,'RATA'),intc=colExact(H,'INT','INT.','INTERNO'),scalac=colExact(H,'SCALA'),pianoc=colExact(H,'P','PIANO'),indc=colContains(H,'SPESE INDIVIDUALI','SPESE INDIVUALI'),indpaid=colExact(H,'RISCOSSE','RISCOSSIONE'),duec=colContains(H,'TOTALE ANNUO DA INCASSARE','TOTALE PERIODO DA INCASSARE'),balanc=colContains(H,'TOTALE ANNUO ANCORA DA INCASSARE','TOTALE PERIODO ANCORA DA INCASSARE'),mcols=monthCols(H),out={},warns=[];
-for(const r of rows.slice(hi+1)){const name=String(val(r,namec)??'').trim();if(!name||nrm(name).startsWith('TOTALE')||nrm(name).startsWith('SCALA'))continue;const rata=num(val(r,ratac)),totalDue=num(val(r,duec)),balance=num(val(r,balanc));if(rata<=0&&totalDue<=0&&Math.abs(balance)<=.01)continue;const monthlyPaid=mcols.reduce((s,[c])=>s+num(val(r,c)),0),indDue=num(val(r,indc)),indPaid=num(val(r,indpaid)),monthlyDue=totalDue>0?Math.max(0,totalDue-indDue):Math.max(0,rata*12);if(rata>0&&Math.abs(monthlyDue-rata*12)>Math.max(2,.03*Math.max(monthlyDue,1)))warns.push(`${name}: quota mensile x12 non coincide con quota ordinaria`);let ordinaryBalance=Math.max(0,monthlyDue-monthlyPaid),individualBalance=Math.max(0,indDue-indPaid),calc=ordinaryBalance+individualBalance;if(balance>0&&Math.abs(calc-balance)>2){warns.push(`${name}: saldo contabile diverso dal ricalcolo`);const diff=balance-calc;if(diff>0)individualBalance+=diff}let paidPool=Math.max(0,monthlyPaid),unpaid=[];for(const [c,mn] of mcols){const q=rata>0?rata:(mcols.length?monthlyDue/mcols.length:0),covered=Math.min(q,paidPool);paidPool-=covered;const rem=Math.max(0,q-covered);if(rem>.01)unpaid.push({mese:mn,importo:round2(rem)})}const excess=Math.max(0,monthlyPaid-monthlyDue)+Math.max(0,indPaid-indDue)+Math.max(0,-balance);out[name]={ordinario:round2(ordinaryBalance),rate_scoperte:unpaid,spese_individuali:round2(individualBalance),credito:round2(excess),interno:String(val(r,intc)??''),scala:String(val(r,scalac)??''),piano:String(val(r,pianoc)??'')}}return [out,warns]}
-function parseBalanceSheet(rows){const hi=findHeader(rows);if(hi==null)return [[], 'intestazione non riconosciuta'];const H=effectiveHeaders(rows,hi),namec=colExact(H,'NOMINATIVO','CONDOMINO'),intc=colExact(H,'INT','INT.','INTERNO'),scalac=colExact(H,'SCALA'),pianoc=colExact(H,'P','PIANO'),totaldue=colContains(H,'TOTALE ANNUO DA INCASSARE','TOTALE PERIODO DA INCASSARE','TOTALE DA INCASSARE'),balancec=colContains(H,'TOTALE ANNUO ANCORA DA INCASSARE','TOTALE PERIODO ANCORA DA INCASSARE','ANCORA DA INCASSARE','DA INCASSARE','SALDO','RESIDUO'),duec=colContains(H,'CONGUAGLIO','IMPORTO','DA VERSARE','RATA','TAB. A'),paidc=colExact(H,'PAGATO','VERSATO','INCASSATO'),reimbc=colExact(H,'RIMBORSATO'),mcols=monthCols(H),out=[];let unresolved=false;for(const r of rows.slice(hi+1)){const person=String(val(r,namec)??'').trim();if(!person||nrm(person).startsWith('TOTALE')||nrm(person).startsWith('SCALA'))continue;const raw=val(r,balancec);let bal;if(balancec!=null&&!(typeof raw==='string'&&raw.includes('#')))bal=num(raw);else{const due=num(val(r,totaldue))||num(val(r,duec)),paid=num(val(r,paidc))+mcols.reduce((s,[c])=>s+num(val(r,c)),0),reimb=num(val(r,reimbc));if(due===0){unresolved=true;continue}bal=due-paid+reimb}if(Math.abs(bal)>.01)out.push({nominativo:person,importo:round2(bal),interno:String(val(r,intc)??''),scala:String(val(r,scalac)??''),piano:String(val(r,pianoc)??'')})}return [out,unresolved?'formula/struttura ricalcolata':null]}
+function parseOrdinary(rows){
+ const hi=findHeader(rows);if(hi==null)return [{},['Intestazione ordinario non riconosciuta']];
+ const H=effectiveHeaders(rows,hi),namec=colExact(H,'NOMINATIVO','CONDOMINO'),ratac=colExact(H,'RATA'),intc=colExact(H,'INT','INT.','INTERNO'),scalac=colExact(H,'SCALA'),pianoc=colExact(H,'P','PIANO'),indc=colContains(H,'SPESE INDIVIDUALI','SPESE INDIVUALI'),indpaid=colExact(H,'RISCOSSE','RISCOSSIONE'),duec=colContains(H,'TOTALE ANNUO DA INCASSARE','TOTALE PERIODO DA INCASSARE'),balanc=colContains(H,'TOTALE ANNUO ANCORA DA INCASSARE','TOTALE PERIODO ANCORA DA INCASSARE'),mcols=monthCols(H),out={},warns=[];
+ let seq=0;
+ rows.slice(hi+1).forEach((r,offset)=>{const name=String(val(r,namec)??'').trim();if(!name||nrm(name).startsWith('TOTALE')||nrm(name).startsWith('SCALA'))return;const rata=num(val(r,ratac)),totalDue=num(val(r,duec)),balance=num(val(r,balanc));if(rata<=0&&totalDue<=0&&Math.abs(balance)<=.01)return;const position=seq++;const monthlyPaid=mcols.reduce((s,[c])=>s+num(val(r,c)),0),indDue=num(val(r,indc)),indPaid=num(val(r,indpaid)),monthlyDue=totalDue>0?Math.max(0,totalDue-indDue):Math.max(0,rata*12);if(rata>0&&Math.abs(monthlyDue-rata*12)>Math.max(2,.03*Math.max(monthlyDue,1)))warns.push(`${name}: quota mensile x12 non coincide con quota ordinaria`);let ordinaryBalance=Math.max(0,monthlyDue-monthlyPaid),individualBalance=Math.max(0,indDue-indPaid),calc=ordinaryBalance+individualBalance;if(balance>0&&Math.abs(calc-balance)>2){warns.push(`${name}: saldo contabile diverso dal ricalcolo`);const diff=balance-calc;if(diff>0)individualBalance+=diff}let paidPool=Math.max(0,monthlyPaid),unpaid=[];for(const [c,mn] of mcols){const q=rata>0?rata:(mcols.length?monthlyDue/mcols.length:0),covered=Math.min(q,paidPool);paidPool-=covered;const rem=Math.max(0,q-covered);if(rem>.01)unpaid.push({mese:mn,importo:round2(rem)})}const excess=Math.max(0,monthlyPaid-monthlyDue)+Math.max(0,indPaid-indDue)+Math.max(0,-balance);out[name]={ordinario:round2(ordinaryBalance),rate_scoperte:unpaid,spese_individuali:round2(individualBalance),credito:round2(excess),interno:String(val(r,intc)??''),scala:String(val(r,scalac)??''),piano:String(val(r,pianoc)??''),_position:position,_row:hi+1+offset};});
+ return [out,warns]
+}
+function parseIncassiRegistry(rows){
+ const hi=findHeader(rows);if(hi==null)return {};
+ const H=effectiveHeaders(rows,hi),namec=colExact(H,'NOMINATIVO','CONDOMINO'),ratac=colExact(H,'RATA'),subc=colExact(H,'SUB'),intc=colExact(H,'INT','INT.','INTERNO'),scalac=colExact(H,'SCALA','S'),pianoc=colExact(H,'P','PIANO'),indc=colContains(H,'SPESE INDIVIDUALI','SPESE INDIVUALI'),indpaid=colExact(H,'RISCOSSE','RISCOSSIONE'),duec=colContains(H,'TOTALE ANNUO DA INCASSARE','TOTALE PERIODO DA INCASSARE'),balanc=colContains(H,'TOTALE ANNUO ANCORA DA INCASSARE','TOTALE PERIODO ANCORA DA INCASSARE'),mcols=monthCols(H),out={};let seq=0;
+ rows.slice(hi+1).forEach((r,offset)=>{const name=String(val(r,namec)??'').trim(),nn=nrm(name);if(!name||nn.startsWith('TOTALE')||nn.startsWith('SCALA')||nn==='CONDOMINO'||nn==='NOMINATIVO')return;const rata=num(val(r,ratac)),totalDue=num(val(r,duec)),balance=num(val(r,balanc)),indDue=num(val(r,indc)),indPaid=num(val(r,indpaid)),sub=String(val(r,subc)??'').trim(),interno=String(val(r,intc)??'').trim(),scala=String(val(r,scalac)??'').trim(),piano=String(val(r,pianoc)??'').trim(),hasMonthData=mcols.some(([c])=>{const x=val(r,c);return x!==null&&x!==undefined&&x!==''}),hasStructure=!!(sub||interno||scala||piano||rata||totalDue||Math.abs(balance)>.01||indDue||indPaid||hasMonthData);if(!hasStructure)return;if(!out[name])out[name]={interno,scala,piano,sub,_position:seq,_row:hi+1+offset};seq++;});
+ return out
+}
+function parseBalanceSheet(rows){
+ const hi=findHeader(rows);if(hi==null)return [[], 'intestazione non riconosciuta'];
+ const H=effectiveHeaders(rows,hi),namec=colExact(H,'NOMINATIVO','CONDOMINO'),intc=colExact(H,'INT','INT.','INTERNO'),scalac=colExact(H,'SCALA'),pianoc=colExact(H,'P','PIANO'),totaldue=colContains(H,'TOTALE ANNUO DA INCASSARE','TOTALE PERIODO DA INCASSARE','TOTALE DA INCASSARE'),balancec=colContains(H,'TOTALE ANNUO ANCORA DA INCASSARE','TOTALE PERIODO ANCORA DA INCASSARE','ANCORA DA INCASSARE','DA INCASSARE','SALDO','RESIDUO'),duec=colContains(H,'CONGUAGLIO','IMPORTO','DA VERSARE','RATA','TAB. A'),paidc=colExact(H,'PAGATO','VERSATO','INCASSATO'),reimbc=colExact(H,'RIMBORSATO'),mcols=monthCols(H),allPeople=[],out=[];let unresolved=false;
+ rows.slice(hi+1).forEach((r,offset)=>{const person=String(val(r,namec)??'').trim();if(!person||nrm(person).startsWith('TOTALE')||nrm(person).startsWith('SCALA'))return;const base={nominativo:person,interno:String(val(r,intc)??''),scala:String(val(r,scalac)??''),piano:String(val(r,pianoc)??''),_position:allPeople.length,_row:hi+1+offset};allPeople.push(base);const raw=val(r,balancec);let bal;if(balancec!=null&&!(typeof raw==='string'&&raw.includes('#')))bal=num(raw);else{const due=num(val(r,totaldue))||num(val(r,duec)),paid=num(val(r,paidc))+mcols.reduce((s,[c])=>s+num(val(r,c)),0),reimb=num(val(r,reimbc));if(due===0){unresolved=true;return}bal=due-paid+reimb}if(Math.abs(bal)>.01)out.push({...base,importo:round2(bal)});});
+ out.forEach(rec=>{const i=rec._position;rec._prevName=i>0?allPeople[i-1].nominativo:'';rec._nextName=i<allPeople.length-1?allPeople[i+1].nominativo:'';rec._allNames=allPeople.map(x=>x.nominativo);});
+ return [out,unresolved?'formula/struttura ricalcolata':null]
+}
 function workbookSheets(wb){const sheets={};for(const name of wb.SheetNames||[])sheets[name]=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true});return sheets}
-function analyzeV6(wb,fileName){const sheets=workbookSheets(wb),[condo0,period,dates,frontKey]=frontInfo(sheets),inc=Object.keys(sheets).find(s=>nrm(s).startsWith('INCASSI '))||Object.keys(sheets).find(s=>nrm(s).includes('INCASSI'));if(!inc)throw new Error('Non trovo un foglio Incassi nel bilancio. Fogli presenti: '+Object.keys(sheets).join(' | '));const [ordinary,warns]=parseOrdinary(sheets[inc]);if(!Object.keys(ordinary).length)throw new Error('Il foglio '+inc+' è stato trovato ma non riesco a riconoscere l’intestazione delle quote.');const people={},ordinaryMeta={};const ensure=p=>people[p]||(people[p]={ordinario:0,rate_scoperte:[],conguaglio:0,spese_individuali:0,straordinari:[],crediti:[]});for(const [p,d] of Object.entries(ordinary)){Object.assign(ensure(p),{ordinario:d.ordinario,rate_scoperte:d.rate_scoperte,spese_individuali:d.spese_individuali});ordinaryMeta[p]=d;if(d.credito>.01)ensure(p).crediti.push({label:'Eccedenza / credito da incassi ordinari',amount:d.credito})}
-const matchPerson=rec=>{const rn=canonName(rec.nominativo),cand=[];for(const [op,md] of Object.entries(ordinaryMeta)){const on=canonName(op),nameMatch=rn&&(rn.includes(on)||on.includes(rn)),unitMatch=rec.interno&&md.interno&&String(rec.interno)===String(md.interno),scaleOk=!rec.scala||!md.scala||String(rec.scala)===String(md.scala);if(nameMatch||(unitMatch&&scaleOk))cand.push(op)}if(cand.length===1)return cand[0];const nc=cand.filter(x=>rn&&(rn.includes(canonName(x))||canonName(x).includes(rn)));return nc.length===1?nc[0]:rec.nominativo};
-const unresolved=[];for(const [sn,rows] of Object.entries(sheets)){const nn=nrm(sn);if(sn===inc||IGNORE_SHEETS.some(tok=>nn.includes(tok)))continue;const [vals,note]=parseBalanceSheet(rows);if(note&&!vals.length)unresolved.push(sn);const isCong=nn.includes('CONG')||((nn.includes('REC')||nn.includes('RECUPERO'))&&nn.includes('INCASS'));for(const rec of vals){const p=matchPerson(rec),d=ensure(p);if(rec.importo>0){if(isCong)d.conguaglio=round2(d.conguaglio+rec.importo);else d.straordinari.push({voce:sn,importo:rec.importo})}else if(rec.importo<0){d.crediti.push({label:(isCong?'Conguaglio / dare-avere a credito':'Credito / eccedenza – '+sn),amount:round2(-rec.importo)})}}}
-const currentPeople=[];for(const [p,d] of Object.entries(people)){const md=ordinaryMeta[p]||{};const items=[];(d.rate_scoperte||[]).forEach(r=>items.push({type:'ordinary',label:r.mese,amount:round2(r.importo),selected:true}));if(d.conguaglio>.01)items.push({type:'cong',label:'Conguaglio a debito',amount:round2(d.conguaglio),selected:true});if(d.spese_individuali>.01)items.push({type:'extra',label:'Spese individuali',amount:round2(d.spese_individuali),selected:true});(d.straordinari||[]).forEach(s=>items.push({type:'extra',label:s.voce,amount:round2(s.importo),selected:true}));const gross=round2(items.reduce((s,x)=>s+x.amount,0));const credits=(d.crediti||[]).filter(c=>c.amount>.01).map(c=>({label:c.label,amount:round2(c.amount),selected:false}));if(gross>.01||credits.length)currentPeople.push({name:p,scala:md.scala||'',piano:md.piano||'',interno:md.interno||'',phone:'',email:'',items,credits,conflicts:[],recipientAddress:'',_v6:{gross,period,dates,inc,warnings:warns,unresolved}})}
-currentPeople.sort((a,b)=>String(a.scala).localeCompare(String(b.scala),'it',{numeric:true})||String(a.interno).localeCompare(String(b.interno),'it',{numeric:true})||a.name.localeCompare(b.name,'it'));currentPeople.forEach((p,i)=>p.id=i);return{title:condo0||fileName.replace(/\.(xlsx|xlsm|xls)$/i,''),people:currentPeople,frontKey,warnings:warns,unresolved}}
-async function parseFileV6(file){loader.classList.remove('hidden');results.classList.add('hidden');try{const data=await file.arrayBuffer(),wb=XLSX.read(data,{type:'array',cellDates:true,cellFormula:true}),r=analyzeV6(wb,file.name);current=r.people;if(r.frontKey&&r.frontKey!=='Frotespizio'&&!wb.Sheets.Frotespizio){wb.Sheets.Frotespizio=wb.Sheets[r.frontKey];wb.SheetNames.push('Frotespizio')}if(!r.frontKey){const ws=XLSX.utils.aoa_to_sheet([[r.title]]);wb.Sheets.Frotespizio=ws;wb.SheetNames.push('Frotespizio')}render(file.name,wb);building.textContent=r.title;source.textContent='Motore V6 · '+file.name+(r.unresolved.length?' · '+r.unresolved.length+' schede da verificare':'');const v=document.querySelector('#results .card .muted');if(v&&v.textContent.includes('V2.8'))v.textContent='Motore contabile V6 · lettura Incassi e singole schede · Rate insolute/Morosi non utilizzati';if(r.unresolved.length)console.warn('Schede non calcolabili V6:',r.unresolved)}catch(e){console.error(e);alert('Non riesco a leggere il file con il motore V6: '+e.message)}finally{loader.classList.add('hidden')}}
+function analyzeV6(wb,fileName){
+ const sheets=workbookSheets(wb),[condo0,period,dates,frontKey]=frontInfo(sheets),inc=Object.keys(sheets).find(s=>nrm(s).startsWith('INCASSI '))||Object.keys(sheets).find(s=>nrm(s).includes('INCASSI'));
+ if(!inc)throw new Error('Non trovo un foglio Incassi nel bilancio. Fogli presenti: '+Object.keys(sheets).join(' | '));
+ const [ordinary,warns]=parseOrdinary(sheets[inc]);if(!Object.keys(ordinary).length)throw new Error('Il foglio '+inc+' è stato trovato ma non riesco a riconoscere l’intestazione delle quote.');
+ const incassiRegistry=parseIncassiRegistry(sheets[inc]);
+ const people={},ordinaryMeta={};
+ const ensure=p=>people[p]||(people[p]={ordinario:0,rate_scoperte:[],conguaglio:0,spese_individuali:0,straordinari:[],crediti:[]});
+ for(const [p,d] of Object.entries(ordinary)){Object.assign(ensure(p),{ordinario:d.ordinario,rate_scoperte:d.rate_scoperte,spese_individuali:d.spese_individuali});ordinaryMeta[p]=d;if(!incassiRegistry[p])incassiRegistry[p]={interno:d.interno||'',scala:d.scala||'',piano:d.piano||'',sub:'',_position:d._position,_row:d._row};if(d.credito>.01)ensure(p).crediti.push({label:'Eccedenza / credito da incassi ordinari',amount:d.credito})}
+ const ordinaryOrder=Object.entries(incassiRegistry).sort((a,b)=>a[1]._position-b[1]._position).map(([name,meta])=>({name,...meta}));
+ const exactName=(a,b)=>{const x=canonName(a),y=canonName(b);return !!(x&&y&&x===y)};
+ const neighborCheck=(rec,idx)=>{
+   const prevTarget=idx>0?ordinaryOrder[idx-1]:null,nextTarget=idx<ordinaryOrder.length-1?ordinaryOrder[idx+1]:null;
+   const prevComparable=!!(rec._prevName&&prevTarget),nextComparable=!!(rec._nextName&&nextTarget);
+   const prevOk=prevComparable&&nameCompatible(rec._prevName,prevTarget.name),nextOk=nextComparable&&nameCompatible(rec._nextName,nextTarget.name);
+   const contradiction=(prevComparable&&!prevOk)||(nextComparable&&!nextOk);
+   return {confirmed:prevOk||nextOk,contradiction,prevOk,nextOk};
+ };
+ const levenshtein=(a,b)=>{const x=String(a||''),y=String(b||'');let prev=Array.from({length:y.length+1},(_,i)=>i);for(let i=1;i<=x.length;i++){const cur=[i];for(let j=1;j<=y.length;j++)cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(x[i-1]===y[j-1]?0:1));prev=cur}return prev[y.length]};
+ const typoCompatible=(a,b)=>{
+   const A=canonName(a).split(' ').filter(Boolean),B=canonName(b).split(' ').filter(Boolean);if(!A.length||!B.length)return false;
+   const shorter=A.length<=B.length?A:B,longer=A.length<=B.length?B:A,used=new Set();let exactish=0,fuzzy=0;
+   for(const t of shorter){let best=null;for(let j=0;j<longer.length;j++){if(used.has(j))continue;const u=longer[j];if(t===u||(t.length===1&&u.startsWith(t))||(u.length===1&&t.startsWith(u))){best={d:0,j};break}if(t.length>=6&&u.length>=6){const d=levenshtein(t,u);if(d<=2&&(!best||d<best.d))best={d,j}}}if(!best)return false;used.add(best.j);if(best.d===0)exactish++;else fuzzy++}
+   return fuzzy===1&&exactish>=1;
+ };
+ const shiftEvidence=(rec,candIdx)=>{
+   const hist=rec._allNames||[],pos=rec._position;let compared=0,confirmed=0,contradictions=0;
+   for(const delta of [-2,-1,1,2]){const hi=pos+delta,oi=candIdx+delta;if(hi<0||oi<0||hi>=hist.length||oi>=ordinaryOrder.length)continue;compared++;if(nameCompatible(hist[hi],ordinaryOrder[oi].name)||typoCompatible(hist[hi],ordinaryOrder[oi].name))confirmed++;else contradictions++}
+   return {compared,confirmed,contradictions};
+ };
+ const matchPerson=rec=>{
+   const exact=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>exactName(rec.nominativo,z.x.name));
+   if(exact.length===1)return {name:exact[0].x.name,reason:'nominativo coincidente in modo univoco'};
+
+   const compatible=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>nameCompatible(rec.nominativo,z.x.name));
+   if(compatible.length===1&&compatible[0].i===rec._position)return {name:compatible[0].x.name,reason:'nome univoco compatibile + stessa posizione'};
+
+   const typo=ordinaryOrder.map((x,i)=>({x,i})).filter(z=>typoCompatible(rec.nominativo,z.x.name));
+   if(typo.length===1&&typo[0].i===rec._position)return {name:typo[0].x.name,reason:'piccola variante/refuso univoco + stessa posizione'};
+
+   if(compatible.length===1){const cand=compatible[0],distance=Math.abs(cand.i-rec._position);if(distance>=1&&distance<=3){const ev=shiftEvidence(rec,cand.i);if(ev.confirmed>=2&&ev.contradictions<=1)return {name:cand.x.name,reason:`nome univoco + slittamento ${cand.i-rec._position} + sequenza confermata ${ev.confirmed}/${ev.compared}`}}}
+   if(typo.length===1){const cand=typo[0],distance=Math.abs(cand.i-rec._position);if(distance>=1&&distance<=3){const ev=shiftEvidence(rec,cand.i);if(ev.confirmed>=2&&ev.contradictions<=1)return {name:cand.x.name,reason:`piccola variante/refuso + slittamento ${cand.i-rec._position} + sequenza confermata ${ev.confirmed}/${ev.compared}`}}}
+
+   const target=ordinaryOrder[rec._position];
+   if(target&&nameCompatible(rec.nominativo,target.name)){
+     const ev=neighborCheck(rec,rec._position);
+     if(!ev.contradiction&&ev.confirmed)return {name:target.name,reason:'nome parziale + stessa posizione + vicino sopra/sotto confermato'};
+   }
+
+   if(compatible.length===1){
+     const cand=compatible[0],ev=neighborCheck(rec,cand.i);
+     if(cand.i!==rec._position)return {name:null,reason:`nome parziale compatibile ma posizione diversa (${cand.i+1} invece di ${rec._position+1})`};
+     if(ev.contradiction)return {name:null,reason:'nome parziale e posizione coerenti ma vicino sopra/sotto in contraddizione'};
+     return {name:null,reason:'nome parziale e posizione coerenti ma nessun vicino sopra/sotto conferma'};
+   }
+   if(compatible.length>1)return {name:null,reason:'nome compatibile con più condomini: associazione ambigua'};
+   if(typo.length>1)return {name:null,reason:'variante/refuso compatibile con più condomini: associazione ambigua'};
+   if(exact.length>1)return {name:null,reason:'nominativo identico presente in più unità: serve conferma di posizione/vicini'};
+   return {name:null,reason:'nominativo non compatibile con il condomino nella stessa posizione'};
+ };
+ const unresolved=[];
+ for(const [sn,rows] of Object.entries(sheets)){
+   const nn=nrm(sn);if(sn===inc||IGNORE_SHEETS.some(tok=>nn.includes(tok)))continue;
+   const [vals,note]=parseBalanceSheet(rows);if(note&&!vals.length)unresolved.push(`${sn}: ${note}`);
+   const isCong=nn.includes('CONG')||((nn.includes('REC')||nn.includes('RECUPERO'))&&nn.includes('INCASS'));
+   for(const rec of vals){
+     const match=matchPerson(rec);
+     if(!match.name){unresolved.push(`${sn} · riga ${rec._row+1} · ${rec.nominativo}: ${match.reason}`);continue}
+     const d=ensure(match.name);
+     if(rec.importo>0){if(isCong)d.conguaglio=round2(d.conguaglio+rec.importo);else d.straordinari.push({voce:sn,importo:rec.importo})}
+     else if(rec.importo<0){d.crediti.push({label:(isCong?'Conguaglio / dare-avere a credito':'Credito / eccedenza – '+sn),amount:round2(-rec.importo)})}
+   }
+ }
+ const currentPeople=[];
+ for(const [p,d] of Object.entries(people)){
+   const md=ordinaryMeta[p]||incassiRegistry[p]||{},items=[];
+   (d.rate_scoperte||[]).forEach(r=>items.push({type:'ordinary',label:r.mese,amount:round2(r.importo),selected:true}));
+   if(d.conguaglio>.01)items.push({type:'cong',label:'Conguaglio a debito',amount:round2(d.conguaglio),selected:true});
+   if(d.spese_individuali>.01)items.push({type:'extra',label:'Spese individuali',amount:round2(d.spese_individuali),selected:true});
+   (d.straordinari||[]).forEach(s=>items.push({type:'extra',label:s.voce,amount:round2(s.importo),selected:true}));
+   const gross=round2(items.reduce((s,x)=>s+x.amount,0));
+   const credits=(d.crediti||[]).filter(c=>c.amount>.01).map(c=>({label:c.label,amount:round2(c.amount),selected:false}));
+   const personConflicts=unresolved.filter(x=>x.includes(`· ${p}:`)||x.includes(`(${p})`));
+   if(gross>.01||credits.length)currentPeople.push({name:p,scala:md.scala||'',piano:md.piano||'',interno:md.interno||'',phone:'',email:'',items,credits,conflicts:personConflicts,recipientAddress:'',_v6:{gross,period,dates,inc,warnings:warns,unresolved}})
+ }
+ currentPeople.sort((a,b)=>String(a.scala).localeCompare(String(b.scala),'it',{numeric:true})||String(a.interno).localeCompare(String(b.interno),'it',{numeric:true})||a.name.localeCompare(b.name,'it'));
+ currentPeople.forEach((p,i)=>p.id=i);
+ return{title:condo0||fileName.replace(/\.(xlsx|xlsm|xls)$/i,''),people:currentPeople,frontKey,warnings:warns,unresolved}
+}
+async function parseFileV6(file){loader.classList.remove('hidden');results.classList.add('hidden');try{const data=await file.arrayBuffer(),wb=XLSX.read(data,{type:'array',cellDates:true,cellFormula:true}),r=analyzeV6(wb,file.name);current=r.people;if(r.frontKey&&r.frontKey!=='Frotespizio'&&!wb.Sheets.Frotespizio){wb.Sheets.Frotespizio=wb.Sheets[r.frontKey];wb.SheetNames.push('Frotespizio')}if(!r.frontKey){const ws=XLSX.utils.aoa_to_sheet([[r.title]]);wb.Sheets.Frotespizio=ws;wb.SheetNames.push('Frotespizio')}render(file.name,wb);building.textContent=r.title;source.textContent='Motore V6 · '+file.name+(r.unresolved.length?' · '+r.unresolved.length+' associazioni/schede da verificare':'');const v=document.querySelector('#results .card .muted');if(v&&v.textContent.includes('V2.8'))v.textContent='Motore contabile V6 · lettura Incassi e singole schede · associazione conguagli verificata per nome/posizione/vicini';if(r.unresolved.length)console.warn('Associazioni/schede da verificare V6:',r.unresolved)}catch(e){console.error(e);alert('Non riesco a leggere il file con il motore V6: '+e.message)}finally{loader.classList.add('hidden')}}
 window.condoAnalyzeV6=analyzeV6;
 parseFile=parseFileV6;
 })();
