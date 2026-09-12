@@ -1,1 +1,30 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=test-v3-assets/index.html?v=final-local1"><title>TEST V3</title></head><body style="font-family:system-ui;padding:24px">Apertura TEST V3…<script>location.replace('test-v3-assets/index.html?v=final-local1');</script></body></html>
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123c69">
+<title>Gestione Condomini · TEST V3</title>
+<style>html,body{margin:0;min-height:100%;background:#f3f5f8;font-family:system-ui,sans-serif}#boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:#f3f5f8;color:#17324d;z-index:99999;font-weight:700}.diag{position:fixed;left:8px;bottom:8px;z-index:100000;background:#8b1e1e;color:#fff;padding:5px 8px;border-radius:8px;font:700 10px system-ui;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}</style>
+</head>
+<body>
+<div id="boot">Apertura TEST V3…</div>
+<div class="diag" id="diag">TEST V3 · e10d1f97 · origin: <span id="origin"></span></div>
+<script>
+(async()=>{
+'use strict';
+document.getElementById('origin').textContent=location.origin;
+const names=['testv3-priority-fix.js','testv3-app-v5.js','testv3-engine-v6.js','testv3-unit-identity-fix-v1.js','testv3-conguaglio-position-fix-v2.js','testv3-duplicate-unit-rebuild-v2.js','testv3-duplicate-conguaglio-position-fix-v3.js','testv3-ordinary-cent-guard-v1.js','testv3-v1-source-order.js','testv3-v1-focus-ordinary-conguagli.js','testv3-folder-name-fix-v1.js','testv3-whatsapp-v6.js','testv3-data-safety-v6.js','testv3-unit-contact-identity-v1.js','testv3-v1-self-check.js','testv3-v1-self-check-unresolved-v3.js','testv3-v1-self-check-cents-v2.js','testv3-v1-deep-check-v2.js','testv3-v1-cent-consistency-v1.js','testv3-drive-sync-v3.js'];
+function load(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src+'?v=20260912-rootfinal1';s.async=false;s.onload=resolve;s.onerror=()=>reject(new Error('Errore caricamento '+src));document.body.appendChild(s);});}
+try{
+ const r=await fetch('legacy-v28.html?v=20260912-rootfinal1',{cache:'no-store'});if(!r.ok)throw new Error('legacy-v28.html HTTP '+r.status);
+ const html=await r.text(),parsed=new DOMParser().parseFromString(html,'text/html');
+ const legacy=[];parsed.querySelectorAll('script').forEach(s=>{legacy.push({src:s.getAttribute('src')||'',code:s.textContent||'',parent:s.parentNode===parsed.head?'head':'body'});s.remove();});
+ document.head.innerHTML=parsed.head.innerHTML+'<style>.diag{position:fixed;left:8px;bottom:8px;z-index:100000;background:#8b1e1e;color:#fff;padding:5px 8px;border-radius:8px;font:700 10px system-ui;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}</style>';
+ document.body.innerHTML=parsed.body.innerHTML+'<div class="diag">TEST V3 · e10d1f97 · origin: '+location.origin+'</div>';
+ for(const x of legacy){if(x.src){await load(x.src);}else if(x.code){const s=document.createElement('script');s.textContent=x.code;(x.parent==='head'?document.head:document.body).appendChild(s);}}
+ for(const n of names)await load(n);
+}catch(e){document.body.innerHTML='<div style="font-family:system-ui;padding:24px;color:#8b1e1e"><h2>TEST V3</h2><p>'+String(e.message||e)+'</p><p>Origin: '+location.origin+'</p></div>';}
+})();
+</script>
+</body>
+</html>
