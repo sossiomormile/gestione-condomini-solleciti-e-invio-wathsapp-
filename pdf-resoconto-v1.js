@@ -166,11 +166,11 @@ function injectButtonForPerson(p){
   const actions=box.querySelector('.actions');if(!actions)return;
   let btn=[...actions.querySelectorAll('button')].find(b=>/PDF|RESOCONTO/i.test(b.textContent||''));
   if(!btn){btn=document.createElement('button');actions.appendChild(btn)}
-  btn.className='pdf-summary-btn';
-  btn.textContent='📄 PDF resoconto';
+  if(btn.className!=='pdf-summary-btn')btn.className='pdf-summary-btn';
+  if(btn.textContent!=='📄 PDF resoconto')btn.textContent='📄 PDF resoconto';
   btn.type='button';
   btn.onclick=()=>generate(p.id);
-  btn.style.display='';
+  if(btn.style.display==='none')btn.style.display='';
 }
 function injectAll(){
   ensureConfigCard();
