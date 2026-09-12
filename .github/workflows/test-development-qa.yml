@@ -1,0 +1,80 @@
+name: Condominio App - TEST Development QA
+
+on:
+  push:
+    branches:
+      - Condominio_App-1.0-test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout TEST
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Test source order
+        run: node qa/test-source-order.mjs
+      - name: Test ordinary multi-unit association
+        run: node qa/test-ordinary-multiunit-association.mjs
+      - name: Test duplicate unit rebuild V2
+        run: node qa/test-duplicate-unit-rebuild-v2.mjs
+      - name: Test duplicate conguaglio position V3
+        run: node qa/test-duplicate-conguaglio-position-v3.mjs
+      - name: Test conguaglio variant total conservation V4
+        run: node qa/test-conguaglio-variant-total-v4.mjs
+      - name: Test ordinary cents guard
+        run: node qa/test-ordinary-cent-guard.mjs
+      - name: Test V1 cent consistency
+        run: node qa/test-v1-cent-consistency.mjs
+      - name: Test V1 operational focus
+        run: node qa/test-v1-focus.mjs
+      - name: Test real message selection
+        run: node qa/test-message-selection-real.mjs
+      - name: Test folder title from Drive
+        run: node qa/test-folder-title.mjs
+      - name: Test unit contact identity
+        run: node qa/test-unit-contact-identity.mjs
+      - name: Test data safety loop guard
+        run: node qa/test-data-safety-loop-guard.mjs
+      - name: Test Drive V2 rollback baseline
+        run: node qa/test-drive-full-refresh.mjs
+      - name: Test Drive V3 safety matrix
+        run: node qa/test-drive-full-refresh-v3.mjs
+      - name: Test official Drive source rules V3
+        run: node qa/test-source-rules-v3.mjs
+      - name: Test runtime self-check integration
+        run: node qa/test-v1-self-check.mjs
+      - name: Test unresolved self-check V3
+        run: node qa/test-self-check-unresolved-v3.mjs
+      - name: Test deep completeness check
+        run: node qa/test-v1-deep-check.mjs
+
+  android-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout TEST
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start TEST locally
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/condominio-test-http.log 2>&1 &
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:4173/index.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/condominio-test-http.log
+          exit 1
+      - name: Android TEST smoke
+        run: node qa/test-stable-production-browser.mjs
