@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+const src=fs.readFileSync('convocazioni-sourcefix-v21.js','utf8');
+const index=fs.readFileSync('index.html','utf8');
+const app=fs.readFileSync('app-current.html','utf8');
+function ok(c,m){if(!c)throw new Error(m)}
+for(const n of ['PANTANI','KAROL','CLANIO 2','DEMACOOP','GARDENIA']) ok(src.includes(`name:'${n}'`),'modello '+n+' assente');
+for(const id of ['172CA6FH8sv-C-S8OLrREGgIzXXDoLLeh','1ZFMJ6eIPrLLsT9Gdynl-mplByUZ2xos8','1cKpZ5eVgqp0R--2A3_cCMNA61xvRS7BJ','1UJjCEenvEnLIOMgRstTBz2eLO3dZOcfV','1TF8uI2eosO00lD1DrnMProeSMpS0r84m']) ok(src.includes(id),'ID modello storico assente: '+id);
+ok(src.includes("const OUT='17L4pTwKdrDxHHm2Sg6MWQx2cg_yUnTXm'"),'cartella output Convocazioni errata');
+ok(src.includes('window.fetch=async function'),'routing fetch V2.1 assente');
+ok(src.includes('j.parents=[OUT]'),'redirect output centrale assente');
+ok(src.includes('retargetBlob'),'retarget modello base assente');
+ok(src.includes('1fHohJRlkq2oN3isMkNC25Q_yFmtKMQKs'),'DOCX base KAROL assente');
+ok(src.includes('1wyavkgA1xUrAZNuiStVNtBL6wPzbnyHq'),'frontespizio PANTANI specifico assente');
+ok(src.includes('1ChDxr0ywodWqPZVfb1xdu1E4CoPbty-5'),'frontespizio DEMACOOP specifico assente');
+ok(!src.includes('condo_archive_v5')&&!src.includes('condo_contacts_v5')&&!src.includes('condo_last_update_v5'),'source-fix tocca chiavi core');
+ok(index.includes('convocazioni-sourcefix-v21.js'),'index TEST non carica source-fix V2.1');
+ok(app.includes('convocazioni-sourcefix-v21.js'),'app-current TEST non carica source-fix V2.1');
+ok(index.indexOf('convocazioni-template-v2.js')<index.indexOf('convocazioni-sourcefix-v21.js'),'ordine loader V2/V2.1 errato in index');
+ok(app.indexOf('convocazioni-template-v2.js')<app.indexOf('convocazioni-sourcefix-v21.js'),'ordine loader V2/V2.1 errato in app-current');
+console.log('CONVOCAZIONI SOURCEFIX V2.1 QA PASSED');
