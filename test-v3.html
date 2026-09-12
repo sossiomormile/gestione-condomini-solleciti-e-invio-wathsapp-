@@ -5,39 +5,34 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Gestione Condomini · TEST V3</title>
 <style>
-html,body{margin:0;height:100%;background:#f3f5f8;font-family:system-ui,sans-serif}#app{width:100%;height:100%;border:0;display:block}#boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:#f3f5f8;color:#17324d;z-index:20;font-weight:700}.test-badge{position:fixed;right:10px;top:10px;z-index:30;background:#8b1e1e;color:#fff;padding:6px 9px;border-radius:999px;font-size:12px;font-weight:800;box-shadow:0 2px 8px #0003}
+html,body{margin:0;min-height:100%;background:#f3f5f8;font-family:system-ui,sans-serif}#boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:#f3f5f8;color:#17324d;z-index:99999;font-weight:700}
 </style>
 </head>
 <body>
-<div class="test-badge">TEST V3</div>
 <div id="boot">Apertura versione TEST V3…</div>
-<iframe id="app" title="Gestione Condomini TEST V3"></iframe>
 <script>
-(()=>{
+(async()=>{
 'use strict';
 const REPO='sossiomormile/gestione-condomini-solleciti-e-invio-wathsapp-';
 const TEST_SHA='e10d1f97ad136e63e15d4c6f11cc9fdf11d255d2';
 const BASE=`https://cdn.jsdelivr.net/gh/${REPO}@${TEST_SHA}/`;
-const frame=document.getElementById('app');
-const boot=document.getElementById('boot');
 const scripts=[
 'priority-fix.js','app-v5.js','engine-v6.js','unit-identity-fix-v1.js','conguaglio-position-fix-v2.js','duplicate-unit-rebuild-v2.js','duplicate-conguaglio-position-fix-v3.js','ordinary-cent-guard-v1.js','v1-source-order.js','v1-focus-ordinary-conguagli.js','folder-name-fix-v1.js','whatsapp-v6.js','data-safety-v6.js','unit-contact-identity-v1.js','v1-self-check.js','v1-self-check-unresolved-v3.js','v1-self-check-cents-v2.js','v1-deep-check-v2.js','v1-cent-consistency-v1.js','drive-sync-v3.js'
 ];
-function fail(msg){boot.textContent='TEST V3 · '+msg;boot.style.color='#8b1e1e'}
-function loadOne(doc,i){
- if(i>=scripts.length){
-   try{const mark=doc.createElement('div');mark.textContent='TEST V3 · '+TEST_SHA.slice(0,8);mark.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99999;background:#8b1e1e;color:white;padding:5px 8px;border-radius:8px;font:700 11px system-ui';doc.body.appendChild(mark)}catch(e){}
-   boot.style.display='none';return;
- }
- const s=doc.createElement('script');s.src=BASE+scripts[i]+'?testv3=20260912';s.onload=()=>loadOne(doc,i+1);s.onerror=()=>fail('Errore caricamento '+scripts[i]);doc.body.appendChild(s);
+function absScript(name){return `<script src="${BASE}${name}?testv3=20260912-direct1"><\/script>`}
+try{
+ const r=await fetch(BASE+'legacy-v28.html?testv3=20260912-direct1',{cache:'no-store'});
+ if(!r.ok)throw new Error('legacy-v28.html HTTP '+r.status);
+ let html=await r.text();
+ html=html.replace('<head>','<head><base href="'+BASE+'">');
+ const badge='<div style="position:fixed;right:8px;top:8px;z-index:99999;background:#8b1e1e;color:#fff;padding:6px 9px;border-radius:999px;font:800 11px system-ui;box-shadow:0 2px 8px #0003">TEST V3 · '+TEST_SHA.slice(0,8)+'</div>';
+ const patch=badge+scripts.map(absScript).join('');
+ html=html.replace('</body>',patch+'</body>');
+ document.open();document.write(html);document.close();
+}catch(e){
+ document.getElementById('boot').textContent='TEST V3 · '+e.message;
+ document.getElementById('boot').style.color='#8b1e1e';
 }
-fetch(BASE+'legacy-v28.html?testv3=20260912',{cache:'no-store'})
- .then(r=>{if(!r.ok)throw new Error('legacy-v28.html HTTP '+r.status);return r.text()})
- .then(html=>{
-   frame.addEventListener('load',()=>{try{const doc=frame.contentDocument;if(!doc)throw new Error('documento iframe non accessibile');loadOne(doc,0)}catch(e){fail(e.message)}} ,{once:true});
-   frame.srcdoc=html;
- })
- .catch(e=>fail(e.message));
 })();
 </script>
 </body>
