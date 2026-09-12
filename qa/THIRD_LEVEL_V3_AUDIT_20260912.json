@@ -1,0 +1,69 @@
+{
+  "audit": "Condominio_APP third-level V3 deep audit",
+  "date": "2026-09-12",
+  "status": "AUTOMATED_AND_REAL_DATA_PASS_PENDING_LIVE_ANDROID",
+  "branch": "Condominio_App-1.0-test",
+  "stable_branch": "Condominio_App-1.0",
+  "stable_commit_unchanged": "6859da29d08f10835ba82873900d7b0a7a440fe8",
+  "drive_root_id": "1ZE0blT7_qZzxdJL54uGhZfsaFIVUk9up",
+  "scope": {
+    "real_condomini": 11,
+    "official_incassi_rows": 355,
+    "ordinary_items_baseline": 1065,
+    "ordinary_total_eur_baseline": 41471.29,
+    "future_ordinary_anomalies_baseline": 0,
+    "conguaglio_source_rows": 285
+  },
+  "third_level_findings": {
+    "hidden_duplicate_unit_groups_found_before_fix": 2,
+    "self_check_counter_bug_found": true,
+    "root_cause": "duplicate-unit rebuild could emit 'Unità duplicate' blocking errors that v1-self-check did not include in congUnresolved because it counted only unresolved strings prefixed by a conguaglio sheet name"
+  },
+  "patches_test_branch_only": [
+    "duplicate-conguaglio-position-fix-v3.js",
+    "v1-self-check-unresolved-v3.js"
+  ],
+  "association_rule": "nome compatibile + stessa posizione relativa + almeno un vicino strutturato sopra e/o sotto confermato + nessuna contraddizione strutturata = associazione automatica; righe-note prive di interno/piano/SUB non sono usate come vicini",
+  "real_duplicate_conguaglio_rows_checked": 8,
+  "real_duplicate_conguaglio_rows_associated": 8,
+  "real_duplicate_conguaglio_rows_blocked": 0,
+  "real_cases": [
+    {
+      "condominio": "Condominio Di.Be",
+      "rows": 2,
+      "result": "PASS",
+      "detail": "BELARDO M. / DI GUIDA E.: storico SUB 5/6 associato per posizione/vicini alle unità correnti SUB 4/5; crediti EUR 60.61 e EUR 61.79 separati"
+    },
+    {
+      "condominio": "Condominio Parco Iris",
+      "rows": 2,
+      "result": "PASS_UNCHANGED",
+      "detail": "CAPUANO ANIELLO: associazioni già corrette preservate, EUR 158.99 e EUR 320.75"
+    },
+    {
+      "condominio": "Condominio Parco San Nazario",
+      "rows": 4,
+      "result": "PASS",
+      "detail": "GALA COSTRUZIONI SRL: riga storica posizione 11 riconosciuta come attuale variante JOSEPH OMORS; interno 9 EUR 3792.62; BOX EUR 301.09 ed EUR 78.12 separati per posizione/vicino superiore; righe-note finali senza struttura escluse dal controllo vicini"
+    }
+  ],
+  "safety": {
+    "stable_modified": false,
+    "promotion_performed": false,
+    "ambiguous_case_still_blocks": true,
+    "ordinary_cent_guard_preserved": true,
+    "drive_transaction_logic_changed": false,
+    "whatsapp_logic_changed": false
+  },
+  "tests": {
+    "local_node_syntax": "PASS",
+    "local_duplicate_conguaglio_position_v3": "PASS",
+    "local_self_check_unresolved_v3": "PASS",
+    "independent_real_excel_duplicate_audit_11_condomini": "PASS_8_OF_8_ZERO_BLOCKED",
+    "github_actions_run_id": 34689112581,
+    "github_actions_head_sha": "05b481f48ff3151957c03f2e8d020ee00a05619c",
+    "github_actions_conclusion": "success",
+    "github_regression_steps": "ALL_PASS_INCLUDING_NEW_V3_TESTS_AND_PROTECTED_BEHAVIOR_LOCK"
+  },
+  "pending_gate": "Execute one full AGGIORNA refresh on the Android test runtime and require 11/11, ordinary 1065 / EUR 41471.29, future 0, conguaglio source 285, unresolved 0, with Di.Be and San Nazario unit-level spot checks. Do not promote to stable before explicit user OK."
+}
