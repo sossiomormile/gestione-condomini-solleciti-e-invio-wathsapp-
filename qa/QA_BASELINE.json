@@ -1,29 +1,47 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "created_at": "2026-09-11T20:12:00+02:00",
-  "updated_at": "2026-09-11T22:05:00+02:00",
+  "updated_at": "2026-09-12T09:35:00+02:00",
   "branch": "Condominio_App-1.0-test",
   "baseline_commit": "cda80fd791685126a185f42370224ac4bf8d1366",
+  "live_runtime_commit": "aeabf43f4cd260fe1f2fa06c84740d306a907bce",
   "backup_branch": "Condominio_App-1.0-test-backup-pre-blindatura-20260911",
   "stable_branch": "Condominio_App-1.0",
   "drive_root_id": "1ZE0blT7_qZzxdJL54uGhZfsaFIVUk9up",
   "active_real_condomini_at_baseline": 11,
   "v1_operational_scope": "rate ordinarie + conguagli + WhatsApp",
+  "second_level_live_qa": {
+    "status": "PASSED_11_OF_11",
+    "phone_run_at": "2026-09-12T09:29:33+02:00",
+    "condomini_checked": 11,
+    "condomini_expected": 11,
+    "ordinary_items": 1065,
+    "ordinary_total_eur": 41471.29,
+    "future_ordinary_anomalies": 0,
+    "conguaglio_source_rows": 285,
+    "conguaglio_unresolved": 0,
+    "ordinary_false_cent_residuals_removed": 5,
+    "ordinary_false_cent_total_removed_eur": 0.05,
+    "ordinary_cent_audit_file": "qa/ORDINARY_CENTS_REAL_AUDIT_20260912.json"
+  },
   "passed_gates": {
     "conguagli": {
-      "status": "LOCKED_OK",
+      "status": "LOCKED_OK_LIVE_SECOND_LEVEL",
       "real_rows_total": 285,
       "associated": 285,
       "da_verificare": 0,
       "rule": "Future changes must preserve the same 285 associations, not only the count."
     },
     "rate_ordinarie": {
-      "status": "LOCKED_OK_AFTER_PROBLEM1_FIX",
+      "status": "LOCKED_OK_LIVE_SECOND_LEVEL",
       "scope": "11 real condomini",
-      "rule": "Do not change calculation logic. Only explicitly authorized corrections may alter output."
+      "real_items": 1065,
+      "real_total_eur": 41471.29,
+      "false_one_cent_residuals_removed": 5,
+      "rule": "Use two-decimal monetary precision. A residual exactly equal to EUR 0.01 is not an unpaid ordinary installment under the protected > 0.01 rule."
     },
     "source_order": {
-      "status": "LOCKED_OK_AUTOMATED",
+      "status": "LOCKED_OK_AUTOMATED_AND_LIVE",
       "scope": "11 real condomini / 355 official Incassi rows",
       "rule": "Displayed people must follow the relative row order of the current Incassi sheet; source row is an ordering clue only, never a persistent identity key.",
       "unmatched_in_real_order_audit": 0
@@ -41,20 +59,20 @@
       "rule": "Drive folders remain ordered with Italian locale ordering."
     },
     "drive_sync": {
-      "status": "FULL_REFRESH_V2_WITH_SELF_CHECK_PENDING_PHONE",
-      "rule": "AGGIORNA scans Drive first, clears only archive/sync accounting data inside a recoverable transaction, reloads every valid balance, runs V1 self-check before commit and restores the previous archive on any acquisition or validation error. Contacts, history and config are fingerprint-checked as unchanged."
+      "status": "FULL_REFRESH_V3_LIVE_PHONE_PASSED",
+      "rule": "AGGIORNA scans Drive first, clears only archive/sync accounting data inside a recoverable transaction, reloads every valid balance, runs V1 self-check/deep-check before commit and restores the previous archive on any acquisition or validation error. Contacts, history and config are fingerprint-checked as unchanged."
     },
     "whatsapp_contatti": {
       "status": "LOCKED_OK_LOGIC",
-      "rule": "A saved phone number must not be inherited by a different owner/name."
+      "rule": "A saved phone number must not be inherited by a different owner/name or another unit of a duplicate owner."
     },
     "v1_focus": {
       "status": "LOCKED_OK",
       "rule": "Operational UI, totals and WhatsApp messages contain only ordinary installments and conguagli; extraordinary/individual expenses and their unrelated credits remain outside V1."
     },
     "runtime_self_check": {
-      "status": "ENABLED_PENDING_PHONE_RUN",
-      "rule": "Every full Drive refresh must compare displayed order and ordinary items with the current Incassi source, verify conguaglio source totals/resolution against the protected engine result, reject summary rows, verify fresh archive data and show a final pass/fail report."
+      "status": "LIVE_PHONE_11_OF_11_PASSED",
+      "rule": "Every full Drive refresh must compare displayed order and ordinary items with the current Incassi source, verify conguaglio source totals/resolution, reject summary rows, validate unit identity, verify fresh archive data and show a final pass/fail report."
     }
   },
   "deferred_not_in_v1": [
@@ -62,9 +80,7 @@
     "Polizze, lavori, pignoramenti, inverter, autoclave, arretrati straordinari and similar sheets",
     "Email and messa in mora are hidden from the V1 operational UI but retained in code for future reactivation"
   ],
-  "known_open_problems_not_to_freeze_as_correct": [
-    "SUB/duplicate-looking units remain a later structural task; source row is not used as permanent unit identity"
-  ],
+  "known_open_problems_not_to_freeze_as_correct": [],
   "protected_runtime_files": [
     "app-current.html",
     "legacy-v28.html",
