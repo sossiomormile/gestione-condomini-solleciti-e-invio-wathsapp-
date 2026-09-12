@@ -1,0 +1,37 @@
+name: Condominio App - RC Production Simulation
+
+on:
+  push:
+    branches:
+      - Condominio_App-1.0-rc-sim
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rc-production-simulation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout RC simulation
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local RC app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/condominio-rc-http.log 2>&1 &
+          echo $! >/tmp/condominio-rc-http.pid
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:4173/app-current.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/condominio-rc-http.log
+          exit 1
+      - name: Android production-path simulation
+        run: node qa/test-rc-production-browser.mjs
