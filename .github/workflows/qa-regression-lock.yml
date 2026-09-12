@@ -30,6 +30,8 @@ jobs:
         run: node qa/test-folder-title.mjs
       - name: Test unit contact identity
         run: node qa/test-unit-contact-identity.mjs
+      - name: Test data safety MutationObserver loop guard
+        run: node qa/test-data-safety-loop-guard.mjs
       - name: Test Drive full refresh transaction V2 rollback baseline
         run: node qa/test-drive-full-refresh.mjs
       - name: Test Drive full refresh V3 safety matrix
