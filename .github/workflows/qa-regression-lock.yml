@@ -28,6 +28,8 @@ jobs:
         run: node qa/test-duplicate-unit-rebuild-v2.mjs
       - name: Test ordinary cents guard
         run: node qa/test-ordinary-cent-guard.mjs
+      - name: Test V1 cent consistency
+        run: node qa/test-v1-cent-consistency.mjs
       - name: Test V1 operational focus
         run: node qa/test-v1-focus.mjs
       - name: Test real message selection
