@@ -55,6 +55,8 @@ jobs:
         run: node qa/test-v1-deep-check.mjs
       - name: Test PDF resoconto structure
         run: node qa/test-pdf-resoconto-v1.mjs
+      - name: Test convocazioni module isolation
+        run: node qa/test-convocazioni-module-v1.mjs
 
   android-smoke:
     runs-on: ubuntu-latest
@@ -82,3 +84,5 @@ jobs:
         run: node qa/test-stable-production-browser.mjs
       - name: PDF resoconto browser/PDF smoke
         run: node qa/test-pdf-resoconto-browser.mjs
+      - name: Convocazioni Android/module smoke
+        run: node qa/test-convocazioni-browser.mjs
