@@ -1,0 +1,20 @@
+{
+  "purpose": "Verifica che l'autocollaudo sommi i conguagli sulla stessa base contabile del motore: ogni posizione viene arrotondata a 2 decimali prima della somma. I file Excel contengono in alcuni casi frazioni di centesimo non visibili.",
+  "files_checked": 11,
+  "conguaglio_rows_checked": 285,
+  "result": "PASS",
+  "condomini": [
+    {"condominio":"Gardenia","conguagli":16,"raw_formula_debit":335.54,"raw_formula_credit":809.32,"operational_cents_debit":335.53,"operational_cents_credit":809.32},
+    {"condominio":"Lupoli","conguagli":12,"raw_formula_debit":0.0,"raw_formula_credit":4612.46,"operational_cents_debit":0.0,"operational_cents_credit":4612.46},
+    {"condominio":"Corso Vittorio Emanuele","conguagli":10,"raw_formula_debit":14234.44,"raw_formula_credit":0.0,"operational_cents_debit":14234.44,"operational_cents_credit":0.0},
+    {"condominio":"Di Lorenzo","conguagli":8,"raw_formula_debit":0.0,"raw_formula_credit":439.99,"operational_cents_debit":0.0,"operational_cents_credit":440.0},
+    {"condominio":"Parco Iris","conguagli":25,"raw_formula_debit":6545.08,"raw_formula_credit":5685.08,"operational_cents_debit":6545.07,"operational_cents_credit":5685.07},
+    {"condominio":"Parco San Nazario","conguagli":22,"raw_formula_debit":11192.23,"raw_formula_credit":806.73,"operational_cents_debit":11192.23,"operational_cents_credit":806.73},
+    {"condominio":"Di.Be","conguagli":18,"raw_formula_debit":114.73,"raw_formula_credit":630.88,"operational_cents_debit":114.73,"operational_cents_credit":630.88},
+    {"condominio":"Demacoop","conguagli":39,"raw_formula_debit":12092.92,"raw_formula_credit":2092.24,"operational_cents_debit":12092.92,"operational_cents_credit":2092.26},
+    {"condominio":"Clanio 2","conguagli":25,"raw_formula_debit":24361.93,"raw_formula_credit":379.35,"operational_cents_debit":24361.93,"operational_cents_credit":379.35},
+    {"condominio":"Parco del Sole","conguagli":75,"raw_formula_debit":5610.85,"raw_formula_credit":1699.49,"operational_cents_debit":5610.87,"operational_cents_credit":1699.51},
+    {"condominio":"Parco Pantani","conguagli":35,"raw_formula_debit":10065.01,"raw_formula_credit":632.68,"operational_cents_debit":10065.0,"operational_cents_credit":632.69}
+  ],
+  "demacoop_explanation": "Il valore 2092.24 deriva dalla somma dei risultati formula con frazioni di centesimo; la somma dei 18 crediti arrotondati singolarmente a centesimi, come fa il motore e come vengono usati operativamente, e' 2092.26. Il precedente autocollaudo confrontava basi diverse e generava un falso errore di 0.02 euro."
+}

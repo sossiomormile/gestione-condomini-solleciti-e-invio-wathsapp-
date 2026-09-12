@@ -1,0 +1,86 @@
+{
+  "audit": "Condominio_APP third-level V3 deep audit",
+  "date": "2026-09-12",
+  "status": "AUTOMATED_AND_REAL_DATA_PASS_ANDROID_TEST_OAUTH_HARNESS_BLOCKED",
+  "branch": "Condominio_App-1.0-test",
+  "stable_branch": "Condominio_App-1.0",
+  "approved_stable_baseline_commit": "6859da29d08f10835ba82873900d7b0a7a440fe8",
+  "drive_root_id": "1ZE0blT7_qZzxdJL54uGhZfsaFIVUk9up",
+  "scope": {
+    "real_condomini": 11,
+    "official_incassi_rows": 355,
+    "ordinary_items_baseline": 1065,
+    "ordinary_total_eur_baseline": 41471.29,
+    "future_ordinary_anomalies_baseline": 0,
+    "conguaglio_source_rows": 285
+  },
+  "third_level_findings": {
+    "hidden_duplicate_unit_groups_found_before_fix": 2,
+    "self_check_counter_bug_found": true,
+    "root_cause": "duplicate-unit rebuild could emit 'Unità duplicate' blocking errors that v1-self-check did not include in congUnresolved because it counted only unresolved strings prefixed by a conguaglio sheet name"
+  },
+  "patches_test_branch_only": [
+    "duplicate-conguaglio-position-fix-v3.js",
+    "v1-self-check-unresolved-v3.js"
+  ],
+  "association_rule": "nome compatibile + stessa posizione relativa + almeno un vicino strutturato sopra e/o sotto confermato + nessuna contraddizione strutturata = associazione automatica; righe-note prive di interno/piano/SUB non sono usate come vicini",
+  "real_duplicate_conguaglio_rows_checked": 8,
+  "real_duplicate_conguaglio_rows_associated": 8,
+  "real_duplicate_conguaglio_rows_blocked": 0,
+  "real_cases": [
+    {
+      "condominio": "Condominio Di.Be",
+      "rows": 2,
+      "result": "PASS",
+      "detail": "BELARDO M. / DI GUIDA E.: storico SUB 5/6 associato per posizione/vicini alle unità correnti SUB 4/5; crediti EUR 60.61 e EUR 61.79 separati"
+    },
+    {
+      "condominio": "Condominio Parco Iris",
+      "rows": 2,
+      "result": "PASS_UNCHANGED",
+      "detail": "CAPUANO ANIELLO: associazioni già corrette preservate, EUR 158.99 e EUR 320.75"
+    },
+    {
+      "condominio": "Condominio Parco San Nazario",
+      "rows": 4,
+      "result": "PASS",
+      "detail": "GALA COSTRUZIONI SRL: riga storica posizione 11 riconosciuta come attuale variante JOSEPH OMORS; interno 9 EUR 3792.62; BOX EUR 301.09 ed EUR 78.12 separati per posizione/vicino superiore; righe-note finali senza struttura escluse dal controllo vicini"
+    }
+  ],
+  "drive_revalidation_20260912": {
+    "official_root_folders": 11,
+    "snapshot_downloaded_local_time_approx": "2026-09-12T10:21:00+02:00",
+    "search_after_utc": "2026-09-12T08:20:00Z",
+    "drive_items_modified_after_snapshot": 0,
+    "conclusion": "The real Excel snapshots used by the V3 audit remain current at the time of the Android OAuth-harness investigation."
+  },
+  "android_live_attempt": {
+    "test_runtime_opens": true,
+    "failure_point": "Pressing AGGIORNA when a fresh Google OAuth token is required",
+    "google_error": "400 invalid_request",
+    "google_error_detail": "origin=null; flowName=GeneralOAuthFlow",
+    "oauth_code_comparison": "drive-sync-v1 stable and drive-sync-v3 test use the same CLIENT_ID, Drive readonly scope, GIS initTokenClient configuration and requestAccessToken prompt",
+    "interpretation": "The failure is isolated to the Android TEST harness OAuth context and is not evidence of a V3 accounting/association regression."
+  },
+  "safety": {
+    "production_index_unchanged": true,
+    "stable_runtime_logic_promoted": false,
+    "stable_branch_contains_user_authorized_test_harness_files": true,
+    "promotion_performed": false,
+    "ambiguous_case_still_blocks": true,
+    "ordinary_cent_guard_preserved": true,
+    "drive_transaction_logic_changed_by_v3_association_fix": false,
+    "whatsapp_logic_changed": false
+  },
+  "tests": {
+    "local_node_syntax": "PASS",
+    "local_duplicate_conguaglio_position_v3": "PASS",
+    "local_self_check_unresolved_v3": "PASS",
+    "independent_real_excel_duplicate_audit_11_condomini": "PASS_8_OF_8_ZERO_BLOCKED",
+    "mobile_browser_smoke": "PASS",
+    "github_actions_final_head_pre_harness": "e10d1f97ad136e63e15d4c6f11cc9fdf11d255d2",
+    "github_actions_conclusion": "success",
+    "github_regression_steps": "ALL_PASS_INCLUDING_NEW_V3_TESTS_AND_PROTECTED_BEHAVIOR_LOCK"
+  },
+  "pending_gate": "Do not promote V3 runtime logic to stable without explicit user authorization. The accounting/data gate is green on current real Drive data; the separate Android TEST-harness fresh-OAuth gate is blocked by Google invalid_request origin=null and must not be misreported as a V3 calculation failure."
+}
