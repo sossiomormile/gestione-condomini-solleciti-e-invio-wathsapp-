@@ -1,0 +1,102 @@
+{
+  "audit_date": "2026-09-12",
+  "scope": "11 condomini ufficiali della cartella Drive Condomini_APP",
+  "drive_root_id": "1ZE0blT7_qZzxdJL54uGhZfsaFIVUk9up",
+  "rule": "Gli importi monetari sono valutati a 2 decimali; un residuo esattamente pari a 0,01 non viene classificato come rata ordinaria insoluta dal gate > 0,01.",
+  "before_correction": {
+    "ordinary_items": 1070,
+    "ordinary_total_eur": 41471.34
+  },
+  "after_correction": {
+    "ordinary_items": 1065,
+    "ordinary_total_eur": 41471.29
+  },
+  "delta": {
+    "items_removed": 5,
+    "eur_removed": 0.05,
+    "all_removed_items_are_false_one_cent_residuals": true
+  },
+  "false_residuals": [
+    {
+      "condominio": "Condominio Parco Pantani",
+      "file": "Consuntivo 2026 - Preventivo 2027.xlsx",
+      "sheet": "Incassi 2025-26",
+      "nominativo": "MAGGIO EMANUELE/MAGGIO FRANCESCO (usufrutto)",
+      "piano": "4",
+      "interno": "18",
+      "sub": "21-51",
+      "mese": "Luglio",
+      "rata_raw": 46.01331746666667,
+      "rata_monetaria": 46.01,
+      "versato": 46.00,
+      "residuo_monetario": 0.01
+    },
+    {
+      "condominio": "Condominio Parco Pantani",
+      "file": "Consuntivo 2026 - Preventivo 2027.xlsx",
+      "sheet": "Incassi 2025-26",
+      "nominativo": "MAGGIO EMANUELE/MAGGIO FRANCESCO (usufrutto)",
+      "piano": "4",
+      "interno": "18",
+      "sub": "21-51",
+      "mese": "Agosto",
+      "rata_raw": 46.01331746666667,
+      "rata_monetaria": 46.01,
+      "versato": 46.00,
+      "residuo_monetario": 0.01
+    },
+    {
+      "condominio": "Condominio Parco Pantani",
+      "file": "Consuntivo 2026 - Preventivo 2027.xlsx",
+      "sheet": "Incassi 2025-26",
+      "nominativo": "MAGGIO EMANUELE/MAGGIO FRANCESCO (usufrutto)",
+      "piano": "4",
+      "interno": "18",
+      "sub": "21-51",
+      "mese": "Settembre",
+      "rata_raw": 46.01331746666667,
+      "rata_monetaria": 46.01,
+      "versato": 46.00,
+      "residuo_monetario": 0.01
+    },
+    {
+      "condominio": "PARCO DEL SOLE",
+      "file": "Bilancio 2026.xlsx",
+      "sheet": "Incassi 2026",
+      "nominativo": "COTRONEO EMENUELE",
+      "piano": "2",
+      "interno": "10",
+      "sub": "",
+      "mese": "Maggio",
+      "rata_raw": 46.34,
+      "rata_monetaria": 46.34,
+      "versato": 46.33,
+      "residuo_float_legacy": 0.010000000000005116,
+      "residuo_monetario": 0.01
+    },
+    {
+      "condominio": "PARCO DEL SOLE",
+      "file": "Bilancio 2026.xlsx",
+      "sheet": "Incassi 2026",
+      "nominativo": "COTRONEO EMENUELE",
+      "piano": "2",
+      "interno": "10",
+      "sub": "",
+      "mese": "Giugno",
+      "rata_raw": 46.34,
+      "rata_monetaria": 46.34,
+      "versato": 46.33,
+      "residuo_float_legacy": 0.010000000000005116,
+      "residuo_monetario": 0.01
+    }
+  ],
+  "live_phone_second_level": {
+    "condomini_checked": 11,
+    "condomini_expected": 11,
+    "ordinary_items_compared": 1065,
+    "future_ordinary_anomalies": 0,
+    "conguaglio_source_rows": 285,
+    "conguaglio_unresolved": 0,
+    "result": "PASSED"
+  }
+}
