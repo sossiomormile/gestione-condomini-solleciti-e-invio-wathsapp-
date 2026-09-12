@@ -19,12 +19,11 @@ const BASE=`https://cdn.jsdelivr.net/gh/${REPO}@${TEST_SHA}/`;
 const scripts=[
 'priority-fix.js','app-v5.js','engine-v6.js','unit-identity-fix-v1.js','conguaglio-position-fix-v2.js','duplicate-unit-rebuild-v2.js','duplicate-conguaglio-position-fix-v3.js','ordinary-cent-guard-v1.js','v1-source-order.js','v1-focus-ordinary-conguagli.js','folder-name-fix-v1.js','whatsapp-v6.js','data-safety-v6.js','unit-contact-identity-v1.js','v1-self-check.js','v1-self-check-unresolved-v3.js','v1-self-check-cents-v2.js','v1-deep-check-v2.js','v1-cent-consistency-v1.js','drive-sync-v3.js'
 ];
-function absScript(name){return `<script src="${BASE}${name}?testv3=20260912-direct1"><\/script>`}
+function absScript(name){return `<script src="${BASE}${name}?testv3=20260912-direct2"><\/script>`}
 try{
- const r=await fetch(BASE+'legacy-v28.html?testv3=20260912-direct1',{cache:'no-store'});
+ const r=await fetch(BASE+'legacy-v28.html?testv3=20260912-direct2',{cache:'no-store'});
  if(!r.ok)throw new Error('legacy-v28.html HTTP '+r.status);
  let html=await r.text();
- html=html.replace('<head>','<head><base href="'+BASE+'">');
  const badge='<div style="position:fixed;right:8px;top:8px;z-index:99999;background:#8b1e1e;color:#fff;padding:6px 9px;border-radius:999px;font:800 11px system-ui;box-shadow:0 2px 8px #0003">TEST V3 · '+TEST_SHA.slice(0,8)+'</div>';
  const patch=badge+scripts.map(absScript).join('');
  html=html.replace('</body>',patch+'</body>');
