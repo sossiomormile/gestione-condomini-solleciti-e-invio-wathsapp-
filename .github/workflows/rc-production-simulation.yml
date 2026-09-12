@@ -33,5 +33,5 @@ jobs:
           done
           cat /tmp/condominio-rc-http.log
           exit 1
-      - name: Android production-path simulation
+      - name: Android production-path simulation (app-current + index)
         run: node qa/test-rc-production-browser.mjs
