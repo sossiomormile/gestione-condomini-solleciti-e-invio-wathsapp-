@@ -1,0 +1,11 @@
+{
+  "created_at": "2026-09-12",
+  "purpose": "Pagina TEST V3 separata su GitHub Pages per collaudo Android con OAuth Google sulla stessa origine autorizzata",
+  "public_test_path": "/test-v3.html",
+  "test_runtime_commit": "e10d1f97ad136e63e15d4c6f11cc9fdf11d255d2",
+  "main_index_modified": false,
+  "stable_branch_modified": false,
+  "stable_branch": "Condominio_App-1.0",
+  "stable_expected_sha": "6859da29d08f10835ba82873900d7b0a7a440fe8",
+  "notes": "La pagina TEST carica legacy-v28.html e la catena runtime V3 dal commit TEST fissato tramite jsDelivr, mantenendo l'origine della pagina su sossiomormile.github.io per OAuth."
+}
