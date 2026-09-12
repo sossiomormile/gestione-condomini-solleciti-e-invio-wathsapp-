@@ -1,0 +1,43 @@
+name: Condominio App - Public Pages Production Smoke
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-production-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Wait for GitHub Pages deployment
+        env:
+          PAGE_URL: https://sossiomormile.github.io/gestione-condomini-solleciti-e-invio-wathsapp-/index.html
+        run: |
+          for i in {1..60}; do
+            HTML="$(curl -fsSL "$PAGE_URL?build=$GITHUB_SHA" || true)"
+            if printf '%s' "$HTML" | grep -q "STABLE_SHA='0edfbdbcb8095699f5bffc2b6d80b079e6acbff4'"; then
+              echo "GitHub Pages aggiornato alla produzione V3+V4"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "GitHub Pages non ha esposto la nuova produzione entro il timeout"
+          exit 1
+      - name: Android public production smoke
+        env:
+          PUBLIC_URL: https://sossiomormile.github.io/gestione-condomini-solleciti-e-invio-wathsapp-/index.html?build=${{ github.sha }}
+        run: node qa/test-public-pages-production.mjs
