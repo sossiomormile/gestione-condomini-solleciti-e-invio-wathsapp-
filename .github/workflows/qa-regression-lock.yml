@@ -22,6 +22,8 @@ jobs:
           fetch-depth: 0
       - name: Test source order
         run: node qa/test-source-order.mjs
+      - name: Test ordinary multi-unit association
+        run: node qa/test-ordinary-multiunit-association.mjs
       - name: Test V1 operational focus
         run: node qa/test-v1-focus.mjs
       - name: Test real message selection
