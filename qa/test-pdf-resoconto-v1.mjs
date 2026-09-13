@@ -28,11 +28,14 @@ for(const needle of [
 ])if(!code.includes(needle))fail('Elemento mancante nel PDF resoconto: '+needle);
 
 if(code.includes('localStorage.setItem(legacyKey'))fail('Il PDF TEST non deve sovrascrivere la configurazione stabile');
-if(!index.includes('pdf-resoconto-v1.js?v=20260912-pdfsummary1'))fail('index TEST non carica pdf-resoconto-v1.js');
-if(!app.includes('pdf-resoconto-v1.js?v=20260912-pdfsummary1'))fail('app-current TEST non carica pdf-resoconto-v1.js');
-const iDrive=index.indexOf('drive-sync-v3.js?v=20260911-fullrefresh3');
-const iPdf=index.indexOf('pdf-resoconto-v1.js?v=20260912-pdfsummary1');
-const iVersion=index.indexOf('version-label-v1.js?v=20260912-prod-v4');
-if(iDrive<0||iPdf<0||iVersion<0||!(iDrive<iPdf&&iPdf<iVersion))fail('Ordine loader PDF TEST errato');
+for(const loader of [index,app]){
+  if(!loader.includes('pdf-resoconto-v1.js?v=20260912-pdfsummary1'))fail('loader TEST non carica pdf-resoconto-v1.js');
+  const iCert=loader.indexOf('update-certification-v1.js?v=20260913-cert1');
+  const iDrive=loader.indexOf('drive-sync-v4.js?v=20260913-cert1');
+  const iPdf=loader.indexOf('pdf-resoconto-v1.js?v=20260912-pdfsummary1');
+  const iVersion=loader.indexOf('version-label-v1.js?v=20260912-prod-v4');
+  if(iCert<0||iDrive<0||iPdf<0||iVersion<0||!(iCert<iDrive&&iDrive<iPdf&&iPdf<iVersion))fail('Ordine loader PDF TEST errato');
+  if(loader.includes('drive-sync-v3.js'))fail('Il loader TEST non deve caricare Drive V3 obsoleto');
+}
 
 console.log('PDF RESOCONTO STRUCTURAL TEST PASSED');
