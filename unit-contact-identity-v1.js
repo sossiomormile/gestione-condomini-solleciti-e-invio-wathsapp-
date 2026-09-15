@@ -73,6 +73,9 @@ function patchAll(){patchHistory();installWhatsapp();syncInputs()}
 function onReturn(){if(document.visibilityState==='visible')askSavePending()}
 function setup(){
  try{localStorage.removeItem(OLD_PENDING_KEY)}catch(e){}
+ document.addEventListener('input',e=>{
+  const el=e.target;if(!el?.classList?.contains('v5phone')&&!el?.classList?.contains('v5email'))return;const p=personFromInput(el);if(!p)return;const box=document.getElementById('p'+p.id),ph=box?.querySelector('.v5phone'),em=box?.querySelector('.v5email');setContact(p,{phone:ph?.value||'',email:em?.value||''});
+ },true);
  document.addEventListener('change',e=>{
   const el=e.target;if(!el?.classList?.contains('v5phone')&&!el?.classList?.contains('v5email'))return;const p=personFromInput(el);if(!p)return;e.stopImmediatePropagation();const box=document.getElementById('p'+p.id),ph=box?.querySelector('.v5phone'),em=box?.querySelector('.v5email');setContact(p,{phone:ph?.value||'',email:em?.value||''});
  },true);
