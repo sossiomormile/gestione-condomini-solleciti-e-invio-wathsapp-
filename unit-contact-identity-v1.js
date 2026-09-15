@@ -61,8 +61,9 @@ function askSavePending(){
 function installWhatsapp(){
  if(typeof calc!=='function'||typeof message!=='function')return;
  const fn=function(id){
-  const p=currentList()[id];if(!p)return;const c=calc(p),box=document.getElementById('p'+id),input=box?.querySelector('.v5phone'),saved=getContact(p),typed=String(input?.value||'').trim(),raw=typed||String(saved.phone||'').trim(),phone=cleanPhone(raw),text=encodeURIComponent(message(p));
+  const p=currentList()[id];if(!p)return;const c=calc(p),box=document.getElementById('p'+id),input=box?.querySelector('.v5phone'),saved=getContact(p),typed=String(input?.value||'').trim(),raw=input?typed:String(saved.phone||'').trim(),phone=cleanPhone(raw),text=encodeURIComponent(message(p));
   if(phone){setContact(p,{phone:raw,email:saved.email||''});try{addHistoryUnit(p,'WhatsApp · '+raw+' · apertura invio',c.net)}catch(e){}location.href='https://wa.me/'+phone+'?text='+text;return}
+  if(input)setContact(p,{phone:'',email:saved.email||''});
   try{localStorage.setItem(PENDING_KEY,JSON.stringify({key:key(p),ts:new Date().toISOString()}));localStorage.removeItem(OLD_PENDING_KEY)}catch(e){}
   try{addHistoryUnit(p,'WhatsApp · selezione destinatario',c.net)}catch(e){}location.href='whatsapp://send?text='+text;
  };
@@ -74,6 +75,9 @@ function setup(){
  try{localStorage.removeItem(OLD_PENDING_KEY)}catch(e){}
  document.addEventListener('change',e=>{
   const el=e.target;if(!el?.classList?.contains('v5phone')&&!el?.classList?.contains('v5email'))return;const p=personFromInput(el);if(!p)return;e.stopImmediatePropagation();const box=document.getElementById('p'+p.id),ph=box?.querySelector('.v5phone'),em=box?.querySelector('.v5email');setContact(p,{phone:ph?.value||'',email:em?.value||''});
+ },true);
+ document.addEventListener('blur',e=>{
+  const el=e.target;if(!el?.classList?.contains('v5phone')&&!el?.classList?.contains('v5email'))return;const p=personFromInput(el);if(!p)return;const box=document.getElementById('p'+p.id),ph=box?.querySelector('.v5phone'),em=box?.querySelector('.v5email');setContact(p,{phone:ph?.value||'',email:em?.value||''});
  },true);
  document.addEventListener('visibilitychange',onReturn);window.addEventListener('pageshow',askSavePending);
  const obs=new MutationObserver(()=>setTimeout(patchAll,0));obs.observe(document.body,{childList:true,subtree:true});patchAll();askSavePending();
