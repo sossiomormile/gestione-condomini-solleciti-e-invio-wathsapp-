@@ -26,4 +26,5 @@ const oldHist=api.legacyHistoryKey(unique),newHist=api.unitHistoryKey(unique);lo
 const code=fs.readFileSync('unit-contact-identity-v1.js','utf8');if(!code.includes("function unitHistoryKey(p){return'condo_hist_v28_'+key(p)}"))throw new Error('Storico non usa la nuova identità unità');if(!code.includes("PENDING_KEY='condo_wa_pending_v8'"))throw new Error('Pending WhatsApp non separato dalla logica legacy');
 const safety=fs.readFileSync('data-safety-v6.js','utf8');if(!safety.includes('window.condoUnitContactIdentityV1')||!safety.includes('api.setContact(p,data)'))throw new Error('Il livello sicurezza non usa il contatto unitario autorevole');
 if(!code.includes("raw=input?typed:String(saved.phone||'').trim()")||!code.includes("if(input)setContact(p,{phone:'',email:saved.email||''})"))throw new Error('La cancellazione immediata prima del click WhatsApp non è protetta');
+if(!code.includes("document.addEventListener('input'")||!code.includes("setContact(p,{phone:ph?.value||'',email:em?.value||''})"))throw new Error('La cancellazione mobile non viene salvata durante la digitazione');
 console.log('UNIT CONTACT IDENTITY TEST PASSED');
