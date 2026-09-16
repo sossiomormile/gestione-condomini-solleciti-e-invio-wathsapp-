@@ -31,7 +31,7 @@ if(code.includes('localStorage.setItem(legacyKey'))fail('Il PDF TEST non deve so
 for(const loader of [index,app]){
   if(!loader.includes('pdf-resoconto-v1.js?v=20260912-pdfsummary1'))fail('loader TEST non carica pdf-resoconto-v1.js');
   const iCert=loader.indexOf('update-certification-v1.js?v=20260913-cert1');
-  const iDrive=loader.indexOf('drive-sync-v4.js?v=20260913-cert1');
+  const iDrive=loader.indexOf('drive-sync-v4.js?v=20260916-androidguard1');
   const iPdf=loader.indexOf('pdf-resoconto-v1.js?v=20260912-pdfsummary1');
   const iVersion=loader.indexOf('version-label-v1.js?v=20260912-prod-v4');
   if(iCert<0||iDrive<0||iPdf<0||iVersion<0||!(iCert<iDrive&&iDrive<iPdf&&iPdf<iVersion))fail('Ordine loader PDF TEST errato');
