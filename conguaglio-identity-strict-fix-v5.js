@@ -15,7 +15,14 @@ function isCongCredit(x){const t=nrm(x?.label);return t.includes('CONGUAGLIO')||
 function strongConflict(a,b){for(const f of ['scala','interno','piano']){const x=unitNorm(a?.[f]),y=unitNorm(b?.[f]);if(x&&y&&x!==y)return true}return false}
 function score(a,b){let s=0;for(const [f,w] of [['sub',32],['scala',8],['interno',8],['piano',4]]){const x=unitNorm(a?.[f]),y=unitNorm(b?.[f]);if(x&&y&&x===y)s+=w}return s}
 function chooseStrict(rec,rows,ri,units,idxs){
- const compatible=idxs.filter(i=>apiV3.nameCompatible(rec.name,units[i].name)&&!strongConflict(rec,units[i]));
+ const named=idxs.filter(i=>apiV3.nameCompatible(rec.name,units[i].name));
+ if(!named.length)return{index:-1,reason:'no-compatible-name'};
+ const rs=unitNorm(rec.sub);
+ if(rs){
+   const subMatches=named.filter(i=>unitNorm(units[i].sub)===rs);
+   if(subMatches.length===1)return{index:subMatches[0],reason:'unique-sub'};
+ }
+ const compatible=named.filter(i=>!strongConflict(rec,units[i]));
  if(!compatible.length)return{index:-1,reason:'no-compatible-unit'};
  const scored=compatible.map(i=>({i,s:score(rec,units[i])})),mx=Math.max(...scored.map(x=>x.s)),best=scored.filter(x=>x.s===mx);
  if(mx>0&&best.length===1)return{index:best[0].i,reason:'unique-structure'};
@@ -61,7 +68,7 @@ function reconcileFamilies(result,wb,fileName){
    if(!mappingOk)continue;
    for(const p of (result.people||[]))if(familyKey(p?.name)===k)persons.add(p);
    for(const p of persons){p.items=(p.items||[]).filter(x=>x?.type!=='cong');p.credits=(p.credits||[]).filter(x=>!isCongCredit(x))}
-   for(const i of idxs){const u=units[i],a=assigned.get(u.sourceRow),p=findPerson(result,u,k);if(!p)continue;if(a.debit>.01)p.items.push({type:'cong',label:'Conguaglio a debito',amount:round2(a.debit),selected:true});if(a.credit>.01)p.credits.push({label:'Conguaglio / dare-avere a credito',amount:round2(a.credit),selected:false});if(p._v6){p._v6.gross=round2((p.items||[]).reduce((s,x)=>s+num(x?.amount),0));p._v6.conguaglioIdentityV5='posizione + struttura + nominativi sopra/sotto'}}
+   for(const i of idxs){const u=units[i],a=assigned.get(u.sourceRow),p=findPerson(result,u,k);if(!p)continue;if(a.debit>.01)p.items.push({type:'cong',label:'Conguaglio a debito',amount:round2(a.debit),selected:true});if(a.credit>.01)p.credits.push({label:'Conguaglio / dare-avere a credito',amount:round2(a.credit),selected:false});if(p._v6){p._v6.gross=round2((p.items||[]).reduce((s,x)=>s+num(x?.amount),0));p._v6.conguaglioIdentityV5='SUB univoco oppure posizione + struttura + nominativi sopra/sotto'}}
  }
  result.people?.forEach((p,i)=>p.id=i);
  window.condoConguaglioIdentityStrictFixV5.lastAudit=audits;
