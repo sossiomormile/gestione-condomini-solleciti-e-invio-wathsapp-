@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+const html=fs.readFileSync('index.html','utf8');
+const fail=m=>{throw new Error(m)};
+const STABLE="7a2a270730f5e72fdb0067da762be12f981336c0";
+if(!html.includes(`const STABLE_SHA='${STABLE}'`))fail('main non punta alla stabile Android collaudata');
+const m=html.match(/const stableNames=\[(.*?)\];/s);if(!m)fail('stableNames non trovato');
+const stable=m[1];
+for(const name of ['android-local-folder-guard-v1.js','conguaglio-identity-strict-fix-v5.js','update-certification-v1.js','drive-sync-v4.js','pdf-resoconto-v1.js','convocazioni-sourcefix-v22.js'])if(!stable.includes(`'${name}'`))fail('loader produzione mancante: '+name);
+if(stable.includes("'drive-sync-v3.js'"))fail('la produzione pubblica non deve caricare Drive V3');
+const pos=n=>stable.indexOf(`'${n}'`);
+if(!(pos('android-local-folder-guard-v1.js')<pos('drive-sync-v4.js')))fail('guardia Android deve precedere Drive V4');
+if(!(pos('update-certification-v1.js')<pos('drive-sync-v4.js')))fail('certificazione deve precedere Drive V4');
+if(!html.includes("?v=20260916-public-androidguard1"))fail('cache bust pubblico Android assente');
+console.log('PUBLIC PAGES LAUNCHER V5 TEST PASSED');
