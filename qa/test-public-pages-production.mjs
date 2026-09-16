@@ -23,6 +23,7 @@ try{
   if(!response?.ok())fail('GitHub Pages non raggiungibile: HTTP '+response?.status());
   await page.waitForFunction(()=>
     typeof window.condoAnalyzeV6==='function' &&
+    !!window.condoV1SourceScopeV2 &&
     !!window.condoDuplicateUnitRebuildV2 &&
     !!window.condoDuplicateConguaglioPositionFixV3 &&
     !!window.condoConguaglioVariantTotalFixV4 &&
@@ -36,6 +37,7 @@ try{
   {timeout:90000});
   const state=await page.evaluate(()=>({
     title:document.title==='Condominio_App 1.0',
+    sourceScope:window.condoV1SourceScopeV2?.version==='v1-source-scope-v2',
     v4:!!window.condoConguaglioVariantTotalFixV4,
     v5:!!window.condoConguaglioIdentityStrictFixV5,
     driveV4:!!window.condoDriveSyncV4,
@@ -69,5 +71,5 @@ try{
   if(pageErrors.length)fail('errori JavaScript: '+pageErrors.join(' | '));
   const relevantFailed=failed.filter(x=>!x.includes('google')&&!x.includes('gstatic'));
   if(relevantFailed.length)fail('richieste runtime fallite: '+relevantFailed.join(' | '));
-  console.log('PUBLIC PAGES PRODUCTION ANDROID GUARD SMOKE PASSED',JSON.stringify({state,after}));
+  console.log('PUBLIC PAGES PRODUCTION V1 SCOPE ANDROID SMOKE PASSED',JSON.stringify({state,after}));
 } finally {await browser.close()}
