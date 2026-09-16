@@ -35,23 +35,34 @@ try{
     !!window.condoAndroidLocalFolderGuardV1?.active &&
     !!window.condoDriveSyncV4,
   {timeout:90000});
-  const state=await page.evaluate(()=>({
-    title:document.title==='Condominio_App 1.0',
-    sourceScope:window.condoV1SourceScopeV2?.version==='v1-source-scope-v2',
-    v4:!!window.condoConguaglioVariantTotalFixV4,
-    v5:!!window.condoConguaglioIdentityStrictFixV5,
-    driveV4:!!window.condoDriveSyncV4,
-    guard:window.condoAndroidLocalFolderGuardV1?.active===true,
-    android:window.condoAndroidLocalFolderGuardV1?.isAndroid===true,
-    pickerBlocked:window.condoAndroidLocalFolderGuardV1?.pickerBlocked===true,
-    certification:window.condoUpdateCertificationV1?.active===true,
-    deep:!!window.condoDeepCheckV2,
-    noTestBadge:!/TEST V3|TEST V4|V3\+V4/i.test(document.body.innerText||''),
-    hasUpdate:document.getElementById('folderBtn')?.textContent?.trim()==='AGGIORNA',
-    native:window.__nativePickerCalls||0,
-    bodyWidth:document.documentElement.scrollWidth,
-    viewport:window.innerWidth
-  }));
+  const state=await page.evaluate(()=>{
+    const api=window.condoConguaglioIdentityStrictFixV5;
+    const rec={name:'G.A. NATALE srl',position:1,row:15,balance:-263.67,scala:'A',piano:'3',interno:'81',sub:'81-40'};
+    const units=[
+      {name:'G.A. NATALE SRL (OLIVIERI GENNARO)',scala:'A',piano:'PT',interno:'2',sub:'8-65'},
+      {name:'G.A. NATALE srl (ROMANO CONCETTA)',scala:'A',piano:'3',interno:'14',sub:'81-40'},
+      {name:'G.A. NATALE srl (DOSSI RICCARDO)',scala:'VILL',piano:'PT',interno:'D',sub:'75'}
+    ];
+    const pick=api?.chooseStrict?.(rec,[rec],0,units,[0,1,2]);
+    return{
+      title:document.title==='Condominio_App 1.0',
+      sourceScope:window.condoV1SourceScopeV2?.version==='v1-source-scope-v2',
+      v4:!!window.condoConguaglioVariantTotalFixV4,
+      v5:!!api,
+      karolSubPriority:pick?.index===1&&pick?.reason==='unique-sub',
+      driveV4:!!window.condoDriveSyncV4,
+      guard:window.condoAndroidLocalFolderGuardV1?.active===true,
+      android:window.condoAndroidLocalFolderGuardV1?.isAndroid===true,
+      pickerBlocked:window.condoAndroidLocalFolderGuardV1?.pickerBlocked===true,
+      certification:window.condoUpdateCertificationV1?.active===true,
+      deep:!!window.condoDeepCheckV2,
+      noTestBadge:!/TEST V3|TEST V4|V3\+V4/i.test(document.body.innerText||''),
+      hasUpdate:document.getElementById('folderBtn')?.textContent?.trim()==='AGGIORNA',
+      native:window.__nativePickerCalls||0,
+      bodyWidth:document.documentElement.scrollWidth,
+      viewport:window.innerWidth
+    };
+  });
   for(const [k,v] of Object.entries(state))if(!['native','bodyWidth','viewport'].includes(k)&&v!==true)fail('public production check: '+k+' '+JSON.stringify(state));
   if(state.native!==0)fail('selettore cartella locale invocato prima del click');
   if(state.viewport>430||state.bodyWidth>state.viewport+2)fail('layout Android non valido: '+JSON.stringify(state));
@@ -71,5 +82,5 @@ try{
   if(pageErrors.length)fail('errori JavaScript: '+pageErrors.join(' | '));
   const relevantFailed=failed.filter(x=>!x.includes('google')&&!x.includes('gstatic'));
   if(relevantFailed.length)fail('richieste runtime fallite: '+relevantFailed.join(' | '));
-  console.log('PUBLIC PAGES PRODUCTION V1 SCOPE ANDROID SMOKE PASSED',JSON.stringify({state,after}));
+  console.log('PUBLIC PAGES PRODUCTION V5 KAROL SUB ANDROID SMOKE PASSED',JSON.stringify({state,after}));
 } finally {await browser.close()}
