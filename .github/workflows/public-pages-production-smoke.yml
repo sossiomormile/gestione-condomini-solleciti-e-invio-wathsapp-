@@ -34,11 +34,12 @@ jobs:
         run: |
           for i in {1..60}; do
             HTML="$(curl -fsSL "$PAGE_URL?build=$GITHUB_SHA" || true)"
-            if printf '%s' "$HTML" | grep -q "STABLE_SHA='435254a659bad3b7382ba46ef484b17411bdf1e7'" \
+            if printf '%s' "$HTML" | grep -q "STABLE_SHA='e162aacf0bab8f5a5dbd7230861c5e2544cf53fb'" \
               && printf '%s' "$HTML" | grep -q "v1-source-scope-v2.js" \
+              && printf '%s' "$HTML" | grep -q "conguaglio-identity-strict-fix-v5.js" \
               && printf '%s' "$HTML" | grep -q "android-local-folder-guard-v1.js" \
               && printf '%s' "$HTML" | grep -q "drive-sync-v4.js"; then
-              echo "GitHub Pages aggiornato alla stabile V1 Incassi+Conguagli"
+              echo "GitHub Pages aggiornato alla stabile V5 Karol SUB"
               exit 0
             fi
             sleep 5
