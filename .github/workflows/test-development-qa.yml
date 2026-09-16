@@ -27,6 +27,8 @@ jobs:
         run: node qa/test-duplicate-conguaglio-position-v3.mjs
       - name: Test conguaglio variant total conservation V4
         run: node qa/test-conguaglio-variant-total-v4.mjs
+      - name: Test conguaglio strict identity V5
+        run: node qa/test-conguaglio-identity-v5.mjs
       - name: Test ordinary cents guard
         run: node qa/test-ordinary-cent-guard.mjs
       - name: Test V1 cent consistency
