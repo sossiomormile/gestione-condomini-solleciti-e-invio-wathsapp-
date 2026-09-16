@@ -29,6 +29,8 @@ jobs:
         run: node qa/test-conguaglio-variant-total-v4.mjs
       - name: Test conguaglio strict identity V5
         run: node qa/test-conguaglio-identity-v5.mjs
+      - name: Test Android local folder guard
+        run: node qa/test-android-local-folder-guard.mjs
       - name: Test ordinary cents guard
         run: node qa/test-ordinary-cent-guard.mjs
       - name: Test V1 cent consistency
@@ -90,6 +92,8 @@ jobs:
           exit 1
       - name: Android TEST smoke
         run: node qa/test-stable-production-browser.mjs
+      - name: Android AGGIORNA no local picker
+        run: node qa/test-android-aggiorna-no-local-picker.mjs
       - name: Extended AGGIORNA certification Android smoke
         run: node qa/test-update-certification-browser.mjs
       - name: PDF resoconto browser/PDF smoke
