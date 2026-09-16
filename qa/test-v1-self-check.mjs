@@ -69,7 +69,7 @@ must('drive-sync-v4.js',[
   'window.condoDriveSyncV4=publicApi;window.condoDriveSyncV3=publicApi'
 ]);
 
-const app=read('app-current.html'),self=app.indexOf('v1-self-check.js?v=20260911-selfcheck1'),cents=app.indexOf('v1-self-check-cents-v2.js?v=20260911-cents1'),deep=app.indexOf('v1-deep-check-v2.js?v=20260911-deep1'),centConsistency=app.indexOf('v1-cent-consistency-v1.js?v=20260912-centconsistency1'),cert=app.indexOf('update-certification-v1.js?v=20260913-cert1'),drive=app.indexOf('drive-sync-v4.js?v=20260913-cert1');
+const app=read('app-current.html'),self=app.indexOf('v1-self-check.js?v=20260911-selfcheck1'),cents=app.indexOf('v1-self-check-cents-v2.js?v=20260911-cents1'),deep=app.indexOf('v1-deep-check-v2.js?v=20260911-deep1'),centConsistency=app.indexOf('v1-cent-consistency-v1.js?v=20260912-centconsistency1'),cert=app.indexOf('update-certification-v1.js?v=20260913-cert1'),drive=app.indexOf('drive-sync-v4.js?v=20260916-androidguard1');
 if(self<0||cents<0||deep<0||centConsistency<0||cert<0||drive<0||self>=cents||cents>=deep||deep>=centConsistency||centConsistency>=cert||cert>=drive)fail('self-check layers must load in order: base -> cents -> deep -> cent consistency -> certification -> Drive V4');
 if(app.includes('drive-sync-v1.js')||app.includes('drive-sync-v2.js')||app.includes('drive-sync-v3.js'))fail('obsolete Drive runtime must not be loaded by app-current');
 
