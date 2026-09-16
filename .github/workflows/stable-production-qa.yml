@@ -27,6 +27,10 @@ jobs:
         run: node qa/test-duplicate-conguaglio-position-v3.mjs
       - name: Test conguaglio variant total conservation V4
         run: node qa/test-conguaglio-variant-total-v4.mjs
+      - name: Test conguaglio strict identity V5
+        run: node qa/test-conguaglio-identity-v5.mjs
+      - name: Test conguaglio V5 loader order
+        run: node qa/test-conguaglio-v5-loader.mjs
       - name: Test ordinary cents guard
         run: node qa/test-ordinary-cent-guard.mjs
       - name: Test V1 cent consistency
@@ -53,6 +57,16 @@ jobs:
         run: node qa/test-self-check-unresolved-v3.mjs
       - name: Test V1 deep completeness check
         run: node qa/test-v1-deep-check.mjs
+      - name: Test extended AGGIORNA certification V1
+        run: node qa/test-update-certification-v1.mjs
+      - name: Test PDF resoconto structure
+        run: node qa/test-pdf-resoconto-v1.mjs
+      - name: Test convocazioni module isolation V1
+        run: node qa/test-convocazioni-module-v1.mjs
+      - name: Test convocazioni original-template V2
+        run: node qa/test-convocazioni-template-v2.mjs
+      - name: Test convocazioni source routing V2.2
+        run: node qa/test-convocazioni-sourcefix-v22.mjs
 
   mobile-production:
     runs-on: ubuntu-latest
@@ -79,3 +93,9 @@ jobs:
           exit 1
       - name: Android production simulation
         run: node qa/test-stable-production-browser.mjs
+      - name: Extended AGGIORNA certification Android smoke
+        run: node qa/test-update-certification-browser.mjs
+      - name: PDF resoconto browser/PDF smoke
+        run: node qa/test-pdf-resoconto-browser.mjs
+      - name: Convocazioni V2.2 Android/module smoke
+        run: node qa/test-convocazioni-browser.mjs
